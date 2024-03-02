@@ -3,7 +3,7 @@ package luhn_test
 import (
 	"testing"
 
-	"github.com/v-starostin/go-musthave-diploma-tpl/internal/luhn"
+	"github.com/v-starostin/gophermart/internal/luhn"
 )
 
 func TestIsValid(t *testing.T) {

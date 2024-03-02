@@ -1,4 +1,4 @@
-module github.com/v-starostin/go-musthave-diploma-tpl
+module github.com/v-starostin/gophermart
 
 go 1.22.0
 
