@@ -3,4 +3,4 @@ generate:
   chi-server: true
   strict-server: true
   embedded-spec: true
-output: ./internal/api/gophermart-server.gen.go
+output: ./gophermart-server.gen.go

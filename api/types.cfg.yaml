@@ -1,4 +1,4 @@
 package: api
 generate:
   models: true
-output: ./internal/api/gophermart-types.gen.go
+output: ./gophermart-types.gen.go

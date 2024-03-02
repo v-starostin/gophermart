@@ -1,3 +1,6 @@
+//go:generate oapi-codegen --config=../../api/types.cfg.yaml ../../api/api.yaml
+//go:generate oapi-codegen --config=../../api/server.cfg.yaml ../../api/api.yaml
+
 package api
 
 import (
@@ -5,7 +8,8 @@ import (
 )
 
 type Service interface {
-	AddUser(username, password string) error
+	RegisterUser(login, password string) error
+	Authenticate(login, password string) (string, error)
 }
 
 type Gophermart struct {
@@ -19,14 +23,24 @@ func NewGophermart(s Service) *Gophermart {
 }
 
 func (g *Gophermart) RegisterUser(ctx context.Context, request RegisterUserRequestObject) (RegisterUserResponseObject, error) {
-	if err := g.service.AddUser(*request.Body.Login, *request.Body.Password); err != nil {
+	if err := g.service.RegisterUser(*request.Body.Login, *request.Body.Password); err != nil {
 		return nil, err
 	}
-	return RegisterUser200JSONResponse{}, nil
+	token, err := g.service.Authenticate(*request.Body.Login, *request.Body.Password)
+	if err != nil {
+		return nil, err
+	}
+
+	return RegisterUser200Response{RegisterUser200ResponseHeaders{Authorization: token}}, nil
 }
 
 func (g *Gophermart) LoginUser(ctx context.Context, request LoginUserRequestObject) (LoginUserResponseObject, error) {
-	return nil, nil
+	token, err := g.service.Authenticate(*request.Body.Login, *request.Body.Password)
+	if err != nil {
+		return nil, err
+	}
+
+	return LoginUser200Response{LoginUser200ResponseHeaders{Authorization: token}}, nil
 }
 
 func (g *Gophermart) GetOrders(ctx context.Context, request GetOrdersRequestObject) (GetOrdersResponseObject, error) {

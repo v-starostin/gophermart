@@ -15,24 +15,26 @@ import (
 
 	"github.com/v-starostin/gophermart/internal/api"
 	"github.com/v-starostin/gophermart/internal/config"
+	"github.com/v-starostin/gophermart/internal/service"
+	"github.com/v-starostin/gophermart/internal/storage"
 )
 
 func main() {
 	cfg, err := config.New()
 	if err != nil {
-		log.Println(err)
+		log.Println("configuration err", err)
 		return
 	}
 
 	db, err := sql.Open("pgx", cfg.DatabaseURI)
 	if err != nil {
-		log.Println(err)
+		log.Println("database connection err", err)
 		return
 	}
 	defer db.Close()
 
 	if err := db.Ping(); err != nil {
-		log.Println(err)
+		log.Println("db ping err", err)
 		return
 	}
 
@@ -61,8 +63,9 @@ func main() {
 
 	swagger.Servers = nil
 
-	var service api.Service
-	gophermart := api.NewGophermart(service)
+	repo := storage.New(db)
+	srv := service.New(repo, []byte(cfg.Secret))
+	gophermart := api.NewGophermart(srv)
 	strictHandler := api.NewStrictHandler(gophermart, nil)
 
 	r := chi.NewRouter()
@@ -75,6 +78,7 @@ func main() {
 		Handler: h,
 	}
 
+	log.Println("Server is listening on", cfg.Address)
 	if err := server.ListenAndServe(); err != nil || !errors.Is(err, http.ErrServerClosed) {
 		log.Println(err)
 		return

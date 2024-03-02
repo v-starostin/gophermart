@@ -21,14 +21,11 @@ type User struct {
 	Password *string `json:"password,omitempty"`
 }
 
-// LoginUserJSONBody defines parameters for LoginUser.
-type LoginUserJSONBody = []User
-
 // UploadOrderJSONBody defines parameters for UploadOrder.
 type UploadOrderJSONBody = string
 
 // LoginUserJSONRequestBody defines body for LoginUser for application/json ContentType.
-type LoginUserJSONRequestBody = LoginUserJSONBody
+type LoginUserJSONRequestBody = User
 
 // UploadOrderJSONRequestBody defines body for UploadOrder for application/json ContentType.
 type UploadOrderJSONRequestBody = UploadOrderJSONBody

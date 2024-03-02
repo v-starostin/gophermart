@@ -9,13 +9,13 @@ import (
 type Config struct {
 	Address     string `env:"RUN_ADDRESS"`
 	DatabaseURI string `env:"DATABASE_URI"`
-	Secret      string `env:"SECRET"`
+	Secret      string `env:"SECRET" envDefault:"key"`
 }
 
 func New() (*Config, error) {
 	flags := parseFlags()
 
-	var cfg *Config
+	cfg := &Config{}
 	err := env.Parse(cfg)
 	if err != nil {
 		return nil, err
@@ -35,5 +35,7 @@ func New() (*Config, error) {
 func parseFlags() *Config {
 	address := flag.String("a", "", "HTTP server address")
 	dbURI := flag.String("d", "", "DB URI")
+	flag.Parse()
+
 	return &Config{Address: *address, DatabaseURI: *dbURI}
 }

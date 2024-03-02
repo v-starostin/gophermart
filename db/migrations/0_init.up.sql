@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS users (
     id uuid NOT NULL,
     login varchar NOT NULL,
     password varchar NOT NULL,
-    PRIMARY KEY(id, login)
+    PRIMARY KEY(id)
 );
 
 CREATE TABLE IF NOT EXISTS tokens (

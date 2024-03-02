@@ -294,13 +294,18 @@ type LoginUserResponseObject interface {
 	VisitLoginUserResponse(w http.ResponseWriter) error
 }
 
-type LoginUser200JSONResponse string
+type LoginUser200ResponseHeaders struct {
+	Authorization string
+}
 
-func (response LoginUser200JSONResponse) VisitLoginUserResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
+type LoginUser200Response struct {
+	Headers LoginUser200ResponseHeaders
+}
+
+func (response LoginUser200Response) VisitLoginUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Authorization", fmt.Sprint(response.Headers.Authorization))
 	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
+	return nil
 }
 
 type LoginUser400Response struct {
@@ -368,13 +373,18 @@ type RegisterUserResponseObject interface {
 	VisitRegisterUserResponse(w http.ResponseWriter) error
 }
 
-type RegisterUser200JSONResponse User
+type RegisterUser200ResponseHeaders struct {
+	Authorization string
+}
 
-func (response RegisterUser200JSONResponse) VisitRegisterUserResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
+type RegisterUser200Response struct {
+	Headers RegisterUser200ResponseHeaders
+}
+
+func (response RegisterUser200Response) VisitRegisterUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Authorization", fmt.Sprint(response.Headers.Authorization))
 	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
+	return nil
 }
 
 type RegisterUser400Response struct {
@@ -577,16 +587,16 @@ func (sh *strictHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/7xUzW7bPBB8FWK/7+hajp1edOylCFDUQdGciqBYS2ubgUSy3FVaI9C7F0v5B7Ll1q3R",
-	"3Ahyhjs7s+QLFL4O3pEThvwFuFhTjWk5jyVFXYToA0WxlLaxKGKDlS5lEwhyYInWraAdgWvqRcehH1iH",
-	"iiC/mc5Gp0AWlIZ7QIABXBMqjyWVX1EUvPSx1hWUKPRGbE2npHa/4xdPVIhe88BDnVR+ZV1fg6wpYQek",
-	"BGT+7mPZJ9xMZ7dvLxGhW9YtvdJL4iLaINY7yOHz2rKxbNCw1VvNffSJMwKxkqpsd8xHTB0/U+SOOxnf",
-	"jCeqzgdyGCzkMBtPxjNQvbJObWYYbNYwxWzfcPCc/FQ3UGXclZDDBz3eth/pW0Ms73y5UWDhnZBLHAyh",
-	"skViZU/s3WFqdGWF6lT1/0hLyOG/7DBf2Xa4slTjYBHGiBt1qNW6HLzjLqDpZPJHxY9DaEdHVnNTFMS8",
-	"bCqzb12F3HaF+uA794yVLY1a57CmbDcBhhuVQWXKmZu6xrjp/OOENtaJN7ImwxsWqjVJXDHkX0CP4VF5",
-	"h1i8PrTU8IoGYnlPMu8QV9pzUTbdqx8I59jLbsj7bY3OTNZDesbd1X8/Wyfxtq9hyLlhvWy22l9HH7ST",
-	"c8Hf6+G/fhI9iUnOkcRIK8uy/T8H0/20RVz5dfw+hOsTv6TG634aO/MSY+CjOKRzXGq+E8MGF76R3Q1a",
-	"FvLugvax/RkAAP//LLF7J+IHAAA=",
+	"H4sIAAAAAAAC/+xUTW8TMRD9K6uBY8imTbnsDS6oEqIVoidUocnuJOtq1zaecSFU+e9o7Hxok+2HQNy4",
+	"Wfa88Zv3nv0Ateu9s2SFoXoArlvqMS2vQkNBFz44T0EMpW2s6xCx06WsPUEFLMHYFWwmYGO/yBj6ib3v",
+	"CKqz8/nktJAFJfKgEGCkLvrOYUPNNxQtXrrQ6woaFHojpqdT0Ga/4xZ3VIu2ueGxSTq3MnbIQVpKtSNU",
+	"PDL/cKEZAs7O5xdvX0JCt4xdOoU3xHUwXoyzUMGX1nBhuMCCjXYtroNLmAmIkXTLdqf4hGniewqcsbPp",
+	"2XSm7Jwni95ABfPpbDoH5SttGrNEb8rIFMr9wN5x0lPVQKVx2UAFH/V4O36g75FY3rtmrYW1s0I2YdD7",
+	"ztQJVd6xs4fU6Op1oCVU8Ko8xKrcZqpMrTdJiUDsneXsw/lsdqoKx7om5mXsij1LmEBL2FBIsHdRWhfM",
+	"r3w0YHHshl55MXbLpb3HzjSFymOxp3LncsFR56Qmecmx7zGss0acqgtjxRXSUsFrFurVLVwxVF9Bj+FW",
+	"cQfpXdjRXtGI9B9IrnLFuDYv1t8I9fycEfllHzKKIeA6R3QoTw7ycKzJI+m5SU81t/7z/Iw59+8Fycl8",
+	"Xo/RUI5oNLDe6ySPGX+th3854olmT9qY6BxRDLQyLNs/ctTdz9uK/9/Dk9/DTqaEGPkSDj4cX3W1m4IL",
+	"XLgouw56LVS5weZ28zsAAP//KdiDwbAHAAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
