@@ -8,6 +8,20 @@ tags:
   - name: user
     description: Operations about user
 paths:
+  /api/user/ping:
+    get:
+      tags:
+        - ping
+      summary: ''
+      description: ''
+      operationId: ping
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: string
   /api/user/register:
     post:
       tags:

@@ -31,6 +31,9 @@ type ServerInterface interface {
 
 	// (POST /api/user/orders)
 	UploadOrder(w http.ResponseWriter, r *http.Request)
+
+	// (GET /api/user/ping)
+	Ping(w http.ResponseWriter, r *http.Request)
 	// Register user
 	// (POST /api/user/register)
 	RegisterUser(w http.ResponseWriter, r *http.Request)
@@ -53,6 +56,11 @@ func (_ Unimplemented) GetOrders(w http.ResponseWriter, r *http.Request) {
 
 // (POST /api/user/orders)
 func (_ Unimplemented) UploadOrder(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// (GET /api/user/ping)
+func (_ Unimplemented) Ping(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -107,6 +115,21 @@ func (siw *ServerInterfaceWrapper) UploadOrder(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UploadOrder(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// Ping operation middleware
+func (siw *ServerInterfaceWrapper) Ping(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.Ping(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -254,6 +277,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/api/user/orders", wrapper.UploadOrder)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/user/ping", wrapper.Ping)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/user/register", wrapper.RegisterUser)
 	})
 
@@ -318,6 +344,22 @@ func (response UploadOrder200JSONResponse) VisitUploadOrderResponse(w http.Respo
 	return json.NewEncoder(w).Encode(response)
 }
 
+type PingRequestObject struct {
+}
+
+type PingResponseObject interface {
+	VisitPingResponse(w http.ResponseWriter) error
+}
+
+type Ping200JSONResponse string
+
+func (response Ping200JSONResponse) VisitPingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type RegisterUserRequestObject struct {
 	Body *RegisterUserJSONRequestBody
 }
@@ -354,6 +396,9 @@ type StrictServerInterface interface {
 
 	// (POST /api/user/orders)
 	UploadOrder(ctx context.Context, request UploadOrderRequestObject) (UploadOrderResponseObject, error)
+
+	// (GET /api/user/ping)
+	Ping(ctx context.Context, request PingRequestObject) (PingResponseObject, error)
 	// Register user
 	// (POST /api/user/register)
 	RegisterUser(ctx context.Context, request RegisterUserRequestObject) (RegisterUserResponseObject, error)
@@ -474,6 +519,30 @@ func (sh *strictHandler) UploadOrder(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Ping operation middleware
+func (sh *strictHandler) Ping(w http.ResponseWriter, r *http.Request) {
+	var request PingRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.Ping(ctx, request.(PingRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "Ping")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(PingResponseObject); ok {
+		if err := validResponse.VisitPingResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // RegisterUser operation middleware
 func (sh *strictHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	var request RegisterUserRequestObject
@@ -508,16 +577,16 @@ func (sh *strictHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/7xUzW7bTAx8lQW/7+hajp1edOylCFDURdGciqCgJdreQNrdLrlpjUDvXnDlH9hWWrcG",
-	"ciNWM/yZIfUMlW+Dd+SEoXwGrtbUYg7nsaaoQYg+UBRL+RmrKiZsNJRNICiBJVq3gm4ELrWLnkM/sQ0N",
-	"QXkznY3OgSwoiY+AAAO4FBqPNdXfUBS89LHVCGoUeiO2pXNSt3/xi0eqRNPc89AkjV9Zd9yDrCljB1oJ",
-	"yPzDx/qYcDOd3b69pAl9sm7plV4TV9EGsd5BCV/Wlo1lg4atZjWfos+cEYiVXGX7Yj5inviJIvfcyfhm",
-	"PNHufCCHwUIJs/FkPAPtV9Z5zAKDLRJTLPYDB89ZT1UDtY27Gkr4oJ+340f6nojlna83Cqy8E3KZgyE0",
-	"tsqs4pG9O2yNRlaozVX/j7SEEv4rDvtVbJeryDUOEmGMuFGFOq3LwTvuDZpOJn9V/NSEbnQiNaeqIuZl",
-	"asx+dG3kti90DL5zT9jY2qh0DlsqdhtgOGkbVGefObUtxk2vH2e0sU68kTUZ3rBQq07iiqH8CvoZHpR3",
-	"sMXroeWBVzRgy3uSeY+4Up6LvOmvfsCcUy37JT8ea/TCZt3nM+5T//tundnbvYYgLy3rZbvV/d76SCvL",
-	"sv05DUr3eYu48i7/POH1cl5S43UvcideZgxc4cGd01LzXTNscOGT7DJoWSj7BN1D9ysAAP//Mp7v/j8H",
-	"AAA=",
+	"H4sIAAAAAAAC/7xUzW7bPBB8FWK/7+hajp1edOylCFDUQdGciqBYS2ubgUSy3FVaI9C7F0v5B7Ll1q3R",
+	"3Ahyhjs7s+QLFL4O3pEThvwFuFhTjWk5jyVFXYToA0WxlLaxKGKDlS5lEwhyYInWraAdgWvqRcehH1iH",
+	"iiC/mc5Gp0AWlIZ7QIABXBMqjyWVX1EUvPSx1hWUKPRGbE2npHa/4xdPVIhe88BDnVR+ZV1fg6wpYQek",
+	"BGT+7mPZJ9xMZ7dvLxGhW9YtvdJL4iLaINY7yOHz2rKxbNCw1VvNffSJMwKxkqpsd8xHTB0/U+SOOxnf",
+	"jCeqzgdyGCzkMBtPxjNQvbJObWYYbNYwxWzfcPCc/FQ3UGXclZDDBz3eth/pW0Ms73y5UWDhnZBLHAyh",
+	"skViZU/s3WFqdGWF6lT1/0hLyOG/7DBf2Xa4slTjYBHGiBt1qNW6HLzjLqDpZPJHxY9DaEdHVnNTFMS8",
+	"bCqzb12F3HaF+uA794yVLY1a57CmbDcBhhuVQWXKmZu6xrjp/OOENtaJN7ImwxsWqjVJXDHkX0CP4VF5",
+	"h1i8PrTU8IoGYnlPMu8QV9pzUTbdqx8I59jLbsj7bY3OTNZDesbd1X8/Wyfxtq9hyLlhvWy22l9HH7ST",
+	"c8Hf6+G/fhI9iUnOkcRIK8uy/T8H0/20RVz5dfw+hOsTv6TG634aO/MSY+CjOKRzXGq+E8MGF76R3Q1a",
+	"FvLugvax/RkAAP//LLF7J+IHAAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
