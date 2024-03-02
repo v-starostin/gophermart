@@ -1,0 +1,122 @@
+openapi: 3.0.3
+info:
+  title: Project Name
+  description: |-
+    This is a simple Project
+  version: 0.1.0
+tags:
+  - name: user
+    description: Operations about user
+paths:
+  /api/user/register:
+    post:
+      tags:
+        - user
+      summary: Register user
+      description: ''
+      operationId: registerUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid username/password supplied
+  /api/user/login:
+    post:
+      tags:
+        - user
+      summary: Logs user into the system
+      description: ''
+      operationId: loginUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/User'
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          description: Invalid username/password supplied
+  /api/user/orders:
+    post:
+      tags:
+        - user
+      summary: ''
+      operationId: uploadOrder
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+    get:
+      tags:
+        - user
+      summary: ''
+      operationId: getOrders
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+components:
+  schemas:
+    Order:
+      type: object
+      properties:
+        number:
+          type: string
+          example: 123
+        status:
+          type: string
+          example: ""
+        uploaded_at:
+          type: string
+          format: date-time
+        accrual:
+          type: string
+    User:
+      type: object
+      properties:
+        login:
+          type: string
+          example: theUser
+        password:
+          type: string
+          example: '12345'
+  requestBodies:
+    UserArray:
+      description: List of user object
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/User'
