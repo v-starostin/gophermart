@@ -104,18 +104,14 @@ paths:
       operationId: uploadOrder
       requestBody:
         content:
-          application/json:
+          text/plain:
             schema:
               type: string
       responses:
-        '200':
-          description: successful operation
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/User'
+        '202':
+          description: Order is created
+        '400':
+          description: ''
     get:
       tags:
         - user
