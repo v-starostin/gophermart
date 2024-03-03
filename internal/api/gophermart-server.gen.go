@@ -10,6 +10,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -308,12 +309,31 @@ func (response LoginUser200Response) VisitLoginUserResponse(w http.ResponseWrite
 	return nil
 }
 
-type LoginUser400Response struct {
+type LoginUser400JSONResponse Error
+
+func (response LoginUser400JSONResponse) VisitLoginUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
 }
 
-func (response LoginUser400Response) VisitLoginUserResponse(w http.ResponseWriter) error {
-	w.WriteHeader(400)
-	return nil
+type LoginUser401JSONResponse Error
+
+func (response LoginUser401JSONResponse) VisitLoginUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type LoginUser500JSONResponse Error
+
+func (response LoginUser500JSONResponse) VisitLoginUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
 }
 
 type GetOrdersRequestObject struct {
@@ -333,20 +353,27 @@ func (response GetOrders200JSONResponse) VisitGetOrdersResponse(w http.ResponseW
 }
 
 type UploadOrderRequestObject struct {
-	Body *UploadOrderJSONRequestBody
+	Body *UploadOrderTextRequestBody
 }
 
 type UploadOrderResponseObject interface {
 	VisitUploadOrderResponse(w http.ResponseWriter) error
 }
 
-type UploadOrder200JSONResponse []User
+type UploadOrder202Response struct {
+}
 
-func (response UploadOrder200JSONResponse) VisitUploadOrderResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
+func (response UploadOrder202Response) VisitUploadOrderResponse(w http.ResponseWriter) error {
+	w.WriteHeader(202)
+	return nil
+}
 
-	return json.NewEncoder(w).Encode(response)
+type UploadOrder400Response struct {
+}
+
+func (response UploadOrder400Response) VisitUploadOrderResponse(w http.ResponseWriter) error {
+	w.WriteHeader(400)
+	return nil
 }
 
 type PingRequestObject struct {
@@ -387,12 +414,31 @@ func (response RegisterUser200Response) VisitRegisterUserResponse(w http.Respons
 	return nil
 }
 
-type RegisterUser400Response struct {
+type RegisterUser400JSONResponse Error
+
+func (response RegisterUser400JSONResponse) VisitRegisterUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
 }
 
-func (response RegisterUser400Response) VisitRegisterUserResponse(w http.ResponseWriter) error {
-	w.WriteHeader(400)
-	return nil
+type RegisterUser409JSONResponse Error
+
+func (response RegisterUser409JSONResponse) VisitRegisterUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RegisterUser500JSONResponse Error
+
+func (response RegisterUser500JSONResponse) VisitRegisterUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
 }
 
 // StrictServerInterface represents all server handlers.
@@ -502,11 +548,12 @@ func (sh *strictHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
 func (sh *strictHandler) UploadOrder(w http.ResponseWriter, r *http.Request) {
 	var request UploadOrderRequestObject
 
-	var body UploadOrderJSONRequestBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't read body: %w", err))
 		return
 	}
+	body := UploadOrderTextRequestBody(data)
 	request.Body = &body
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
@@ -587,16 +634,18 @@ func (sh *strictHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+xUTW8TMRD9K6uBY8imTbnsDS6oEqIVoidUocnuJOtq1zaecSFU+e9o7Hxok+2HQNy4",
-	"Wfa88Zv3nv0Ateu9s2SFoXoArlvqMS2vQkNBFz44T0EMpW2s6xCx06WsPUEFLMHYFWwmYGO/yBj6ib3v",
-	"CKqz8/nktJAFJfKgEGCkLvrOYUPNNxQtXrrQ6woaFHojpqdT0Ga/4xZ3VIu2ueGxSTq3MnbIQVpKtSNU",
-	"PDL/cKEZAs7O5xdvX0JCt4xdOoU3xHUwXoyzUMGX1nBhuMCCjXYtroNLmAmIkXTLdqf4hGniewqcsbPp",
-	"2XSm7Jwni95ABfPpbDoH5SttGrNEb8rIFMr9wN5x0lPVQKVx2UAFH/V4O36g75FY3rtmrYW1s0I2YdD7",
-	"ztQJVd6xs4fU6Op1oCVU8Ko8xKrcZqpMrTdJiUDsneXsw/lsdqoKx7om5mXsij1LmEBL2FBIsHdRWhfM",
-	"r3w0YHHshl55MXbLpb3HzjSFymOxp3LncsFR56Qmecmx7zGss0acqgtjxRXSUsFrFurVLVwxVF9Bj+FW",
-	"cQfpXdjRXtGI9B9IrnLFuDYv1t8I9fycEfllHzKKIeA6R3QoTw7ycKzJI+m5SU81t/7z/Iw59+8Fycl8",
-	"Xo/RUI5oNLDe6ySPGX+th3854olmT9qY6BxRDLQyLNs/ctTdz9uK/9/Dk9/DTqaEGPkSDj4cX3W1m4IL",
-	"XLgouw56LVS5weZ28zsAAP//KdiDwbAHAAA=",
+	"H4sIAAAAAAAC/+xVS2/TQBD+K6uBo4nzaA/4RiWEKiFaIXpCEdrak2Qre3eZGZeGyv8d7a7TkMR9SJSK",
+	"A6dsdufxzTczn2+hdI13Fq0wFLfA5QobHY/viRyFgyfnkcRgvC5dheG3Qi7JeDHOQpGMVXzLYOGo0QIF",
+	"GCuQgaw9pj+4RIIugwaZ9fLeMJvnO1cWMnYJXZcB4ffWEFZQfIU+3cZ83mVwRhUOgNZlSa2uw3EvZAa2",
+	"bS6TD97oxtcIxWQ6yw4NWbS0vGMIMGDX+trpCqtvgYPbLRuVFnwjphkurL9xl1dYSghzwUOV1G5p7C4G",
+	"WWG0HYDiNfMPR9Wuw2Q6Ozp+lN2U6bcY8wOQwcXYhTts5JeVYWVYacUmZFXn5KJPBmIkouhv1CcdGblG",
+	"4uQ7Hk1G44DeebTaGyhgNhqPZhGLrCINufYmbxkpvyPEO458B7Z0gHFaQQEfw3NPT6gOWU5ctU6TbAVt",
+	"9NHe16aMXvkVO7tdhXB6TbiAAl7l213J+0XJY+iuS+Sxd5ZTn6bj8SEr3JYlMi/aWt2hhAxWqCuk6Pau",
+	"lZUj8zM97aDY71ZIeZSyPEslad9j2F3UJ7pSPXUQc07+fs5Aq6ocsrJOFN6YlPv4Jeo9tYJkda0Y6RpJ",
+	"YW+YAbdNo2mdxopVmD9lrDglK1S8ZsEmDLheclig8Azz4LedVkebTi9xYFo/oJwli+FxenLhRrDhxxhI",
+	"YrnVHk2k10OMJIHaLSu7Z+Euovql0A+tnOCN5L7W5gljvkfF9HCzYr4gOCWhFqxguxyPl7LTIR/S3tef",
+	"8/D4h605KPBBtiOcPYiES8PSfx0Gm/C5t/gvfM8qfG9fSPh0TairddI9/qeEbzNZUfwGxG47ugcrumk8",
+	"K33pWtlEsOH7X6QA3bz7FQAA//9UnqI3kgoAAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

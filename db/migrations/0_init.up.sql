@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS orders (
     user_id uuid UNIQUE NOT NULL REFERENCES users(id),
     status varchar NOT NULL,
     accrual integer,
-    uploaded_at timestamp DEFAULT CURRENT_TIME,
+    uploaded_at timestamp DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id)
 );
 
@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS withdraws (
     user_id uuid UNIQUE NOT NULL REFERENCES users(id),
     status varchar NOT NULL,
     accrual integer,
-    processed_at timestamp DEFAULT CURRENT_TIME,
+    processed_at timestamp DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id)
 );
 
@@ -39,6 +39,6 @@ CREATE TABLE IF NOT EXISTS accruals (
      user_id uuid UNIQUE NOT NULL REFERENCES users(id),
      status varchar NOT NULL,
      accrual integer,
-     processed_at timestamp DEFAULT CURRENT_TIME,
+     processed_at timestamp DEFAULT CURRENT_TIMESTAMP,
      PRIMARY KEY (id)
 );

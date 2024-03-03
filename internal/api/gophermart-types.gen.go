@@ -7,6 +7,15 @@ import (
 	"time"
 )
 
+// Error defines model for Error.
+type Error struct {
+	// Code Error code
+	Code int `json:"code"`
+
+	// Message Error message
+	Message string `json:"message"`
+}
+
 // Order defines model for Order.
 type Order struct {
 	Accrual    *string    `json:"accrual,omitempty"`
@@ -17,18 +26,18 @@ type Order struct {
 
 // User defines model for User.
 type User struct {
-	Login    *string `json:"login,omitempty"`
-	Password *string `json:"password,omitempty"`
+	Login    string `json:"login"`
+	Password string `json:"password"`
 }
 
-// UploadOrderJSONBody defines parameters for UploadOrder.
-type UploadOrderJSONBody = string
+// UploadOrderTextBody defines parameters for UploadOrder.
+type UploadOrderTextBody = string
 
 // LoginUserJSONRequestBody defines body for LoginUser for application/json ContentType.
 type LoginUserJSONRequestBody = User
 
-// UploadOrderJSONRequestBody defines body for UploadOrder for application/json ContentType.
-type UploadOrderJSONRequestBody = UploadOrderJSONBody
+// UploadOrderTextRequestBody defines body for UploadOrder for text/plain ContentType.
+type UploadOrderTextRequestBody = UploadOrderTextBody
 
 // RegisterUserJSONRequestBody defines body for RegisterUser for application/json ContentType.
 type RegisterUserJSONRequestBody = User

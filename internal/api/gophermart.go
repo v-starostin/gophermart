@@ -5,6 +5,11 @@ package api
 
 import (
 	"context"
+	"database/sql"
+	"errors"
+	"net/http"
+
+	"github.com/lib/pq"
 )
 
 type Service interface {
@@ -23,21 +28,49 @@ func NewGophermart(s Service) *Gophermart {
 }
 
 func (g *Gophermart) RegisterUser(ctx context.Context, request RegisterUserRequestObject) (RegisterUserResponseObject, error) {
-	if err := g.service.RegisterUser(*request.Body.Login, *request.Body.Password); err != nil {
-		return nil, err
-	}
-	token, err := g.service.Authenticate(*request.Body.Login, *request.Body.Password)
+	err := g.service.RegisterUser(request.Body.Login, request.Body.Password)
 	if err != nil {
-		return nil, err
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) {
+			if pqErr.Code.Name() == "23505" {
+				return RegisterUser409JSONResponse{
+					Code:    http.StatusConflict,
+					Message: "User already exists",
+				}, nil
+			}
+		}
+
+		return RegisterUser500JSONResponse{
+			Code:    http.StatusInternalServerError,
+			Message: err.Error(),
+		}, nil
+	}
+
+	token, err := g.service.Authenticate(request.Body.Login, request.Body.Password)
+	if err != nil {
+		return RegisterUser500JSONResponse{
+			Code:    http.StatusInternalServerError,
+			Message: err.Error(),
+		}, nil
 	}
 
 	return RegisterUser200Response{RegisterUser200ResponseHeaders{Authorization: token}}, nil
 }
 
 func (g *Gophermart) LoginUser(ctx context.Context, request LoginUserRequestObject) (LoginUserResponseObject, error) {
-	token, err := g.service.Authenticate(*request.Body.Login, *request.Body.Password)
+	token, err := g.service.Authenticate(request.Body.Login, request.Body.Password)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, sql.ErrNoRows) {
+			return LoginUser401JSONResponse{
+				Code:    http.StatusUnauthorized,
+				Message: "User do not exist",
+			}, nil
+		}
+
+		return LoginUser500JSONResponse{
+			Code:    http.StatusInternalServerError,
+			Message: err.Error(),
+		}, nil
 	}
 
 	return LoginUser200Response{LoginUser200ResponseHeaders{Authorization: token}}, nil

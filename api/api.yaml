@@ -144,6 +144,9 @@ components:
           type: string
     User:
       type: object
+      required:
+        - login
+        - password
       properties:
         login:
           type: string
@@ -158,7 +161,7 @@ components:
       properties:
         code:
           type: integer
-          format: int32
+          format: int
           description: Error code
         message:
           type: string

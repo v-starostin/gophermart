@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 
 	"github.com/google/uuid"
+
 	"github.com/v-starostin/gophermart/internal/model"
 )
 
