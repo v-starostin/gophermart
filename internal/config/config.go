@@ -7,9 +7,10 @@ import (
 )
 
 type Config struct {
-	Address     string `env:"RUN_ADDRESS"`
-	DatabaseURI string `env:"DATABASE_URI"`
-	Secret      string `env:"SECRET" envDefault:"key"`
+	Address        string `env:"RUN_ADDRESS"`
+	DatabaseURI    string `env:"DATABASE_URI"`
+	Secret         string `env:"SECRET" envDefault:"key"`
+	AccrualAddress string `env:"ACCRUAL_SYSTEM_ADDRESS"`
 }
 
 func New() (*Config, error) {
@@ -27,6 +28,9 @@ func New() (*Config, error) {
 	if cfg.DatabaseURI == "" {
 		cfg.DatabaseURI = flags.DatabaseURI
 	}
+	if cfg.AccrualAddress == "" {
+		cfg.AccrualAddress = flags.AccrualAddress
+	}
 
 	return cfg, nil
 }
@@ -35,7 +39,8 @@ func New() (*Config, error) {
 func parseFlags() *Config {
 	address := flag.String("a", "", "HTTP server address")
 	dbURI := flag.String("d", "", "DB URI")
+	accrualAddress := flag.String("r", "", "Accrual System address")
 	flag.Parse()
 
-	return &Config{Address: *address, DatabaseURI: *dbURI}
+	return &Config{Address: *address, DatabaseURI: *dbURI, AccrualAddress: *accrualAddress}
 }

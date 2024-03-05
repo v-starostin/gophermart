@@ -1,6 +1,13 @@
 package service
 
 import (
+	"database/sql"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
 	"time"
 
 	"github.com/google/uuid"
@@ -10,18 +17,51 @@ import (
 	"github.com/v-starostin/gophermart/internal/model"
 )
 
+const (
+	accrualAPIFormat = "%s/api/orders/%d"
+)
+
 type Storage interface {
 	AddUser(login, password string) error
 	GetUser(login, password string) (*model.User, error)
+	AddOrder(userID uuid.UUID, order model.Order) error
+	GetOrder(userID uuid.UUID, orderNumber int) (*model.Order, error)
+}
+
+type HTTPClient interface {
+	Do(req *http.Request) (*http.Response, error)
 }
 
 type Auth struct {
-	storage Storage
-	secret  []byte
+	storage    Storage
+	client     HTTPClient
+	secret     []byte
+	accrualURL string
 }
 
-func New(storage Storage, secret []byte) *Auth {
-	return &Auth{storage, secret}
+func New(storage Storage, secret []byte, url string) *Auth {
+	return &Auth{
+		storage:    storage,
+		secret:     secret,
+		accrualURL: url,
+		client:     &http.Client{},
+	}
+}
+
+func (a *Auth) UploadOrder(userID uuid.UUID, number int) error {
+	order, err := a.storage.GetOrder(userID, number)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
+	if order != nil {
+		return fmt.Errorf("order %d already exists for user %s", number, userID)
+	}
+
+	order, err = a.fetchOrder(number)
+	if err != nil {
+		return err
+	}
+	return a.storage.AddOrder(userID, *order)
 }
 
 func (a *Auth) RegisterUser(login, password string) error {
@@ -42,10 +82,32 @@ func (a *Auth) generateAccessToken(id uuid.UUID) (string, error) {
 	now := time.Now()
 	token.Set(jwt.SubjectKey, id.String())
 	token.Set(jwt.IssuedAtKey, now.Unix())
-	token.Set(jwt.ExpirationKey, now.Add(10*time.Minute))
+	token.Set(jwt.ExpirationKey, now.Add(100*time.Minute))
 	signedToken, err := jwt.Sign(token, jwa.HS256, a.secret)
 	if err != nil {
 		return "", err
 	}
 	return string(signedToken), nil
+}
+
+func (a *Auth) fetchOrder(number int) (*model.Order, error) {
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf(accrualAPIFormat, a.accrualURL, number), nil)
+	if err != nil {
+		return nil, err
+	}
+	res, err := a.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	log.Println("response status:", res.Status)
+	b, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+	var order model.Order
+	if err := json.Unmarshal(b, &order); err != nil {
+		return nil, err
+	}
+	return &order, nil
 }

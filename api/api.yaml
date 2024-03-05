@@ -8,20 +8,6 @@ tags:
   - name: user
     description: Operations about user
 paths:
-  /api/user/ping:
-    get:
-      tags:
-        - ping
-      summary: ''
-      description: ''
-      operationId: ping
-      responses:
-        200:
-          description: ''
-          content:
-            application/json:
-              schema:
-                type: string
   /api/user/register:
     post:
       tags:
@@ -103,15 +89,46 @@ paths:
       summary: ''
       operationId: uploadOrder
       requestBody:
+        required: true
         content:
           text/plain:
             schema:
               type: string
       responses:
+        '200':
+          description: ''
         '202':
           description: Order is created
         '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
           description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     get:
       tags:
         - user
@@ -126,6 +143,21 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Order'
+        '204':
+          description: ''
+        '401':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
 components:
   schemas:
     Order:

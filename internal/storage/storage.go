@@ -4,9 +4,10 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
+	"log"
+	"time"
 
 	"github.com/google/uuid"
-
 	"github.com/v-starostin/gophermart/internal/model"
 )
 
@@ -20,12 +21,46 @@ type user struct {
 	password string
 }
 
+type order struct {
+	id          uuid.UUID
+	orderNumber int
+	userID      uuid.UUID
+	accrual     int
+	status      string
+	uploadedAt  time.Time
+}
+
 func New(db *sql.DB) *Storage {
 	return &Storage{db}
 }
 
+func (s *Storage) AddOrder(userID uuid.UUID, order model.Order) error {
+	orderID, err := uuid.NewRandom()
+	if err != nil {
+		return err
+	}
+	query := "INSERT INTO orders (id, user_id, order_number, status, accrual) VALUES ($1,$2,$3,$4,$5)"
+	_, err = s.db.Exec(query, orderID, userID, order.Number, order.Status, order.Accrual)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Storage) GetOrder(userID uuid.UUID, orderNumber int) (*model.Order, error) {
+	var o order
+	query := "SELECT user_id, order_number FROM orders WHERE user_id = $1 AND order = $2"
+	if err := s.db.QueryRow(query, userID, orderNumber).Scan(&o.userID, &o.orderNumber); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
+}
+
 func (s *Storage) AddUser(login, password string) error {
 	userID, err := uuid.NewRandom()
+	log.Println("id of registered user:", userID)
 	if err != nil {
 		return err
 	}

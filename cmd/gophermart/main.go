@@ -64,12 +64,13 @@ func main() {
 	swagger.Servers = nil
 
 	repo := storage.New(db)
-	srv := service.New(repo, []byte(cfg.Secret))
-	gophermart := api.NewGophermart(srv)
+	srv := service.New(repo, []byte(cfg.Secret), cfg.AccrualAddress)
+	gophermart := api.NewGophermart(srv, []byte(cfg.Secret))
 	strictHandler := api.NewStrictHandler(gophermart, nil)
 
 	r := chi.NewRouter()
 	r.Use(middleware.OapiRequestValidator(swagger))
+	r.Use(api.Authenticate([]byte(cfg.Secret)))
 
 	h := api.HandlerFromMux(strictHandler, r)
 
