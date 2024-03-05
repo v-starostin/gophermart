@@ -23,6 +23,12 @@ import (
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+
+	// (GET /api/user/balance)
+	GetBalance(w http.ResponseWriter, r *http.Request)
+
+	// (POST /api/user/balance/withdraw)
+	WithdrawRequest(w http.ResponseWriter, r *http.Request)
 	// Logs user into the system
 	// (POST /api/user/login)
 	LoginUser(w http.ResponseWriter, r *http.Request)
@@ -40,6 +46,16 @@ type ServerInterface interface {
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// (GET /api/user/balance)
+func (_ Unimplemented) GetBalance(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// (POST /api/user/balance/withdraw)
+func (_ Unimplemented) WithdrawRequest(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // Logs user into the system
 // (POST /api/user/login)
@@ -71,6 +87,36 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// GetBalance operation middleware
+func (siw *ServerInterfaceWrapper) GetBalance(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetBalance(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// WithdrawRequest operation middleware
+func (siw *ServerInterfaceWrapper) WithdrawRequest(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.WithdrawRequest(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
 
 // LoginUser operation middleware
 func (siw *ServerInterfaceWrapper) LoginUser(w http.ResponseWriter, r *http.Request) {
@@ -246,6 +292,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/user/balance", wrapper.GetBalance)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/user/balance/withdraw", wrapper.WithdrawRequest)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/user/login", wrapper.LoginUser)
 	})
 	r.Group(func(r chi.Router) {
@@ -259,6 +311,95 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 
 	return r
+}
+
+type GetBalanceRequestObject struct {
+}
+
+type GetBalanceResponseObject interface {
+	VisitGetBalanceResponse(w http.ResponseWriter) error
+}
+
+type GetBalance200JSONResponse struct {
+	Current   *int `json:"current,omitempty"`
+	Withdrawn *int `json:"withdrawn,omitempty"`
+}
+
+func (response GetBalance200JSONResponse) VisitGetBalanceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetBalance401JSONResponse Error
+
+func (response GetBalance401JSONResponse) VisitGetBalanceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetBalance500JSONResponse Error
+
+func (response GetBalance500JSONResponse) VisitGetBalanceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type WithdrawRequestRequestObject struct {
+	Body *WithdrawRequestJSONRequestBody
+}
+
+type WithdrawRequestResponseObject interface {
+	VisitWithdrawRequestResponse(w http.ResponseWriter) error
+}
+
+type WithdrawRequest200Response struct {
+}
+
+func (response WithdrawRequest200Response) VisitWithdrawRequestResponse(w http.ResponseWriter) error {
+	w.WriteHeader(200)
+	return nil
+}
+
+type WithdrawRequest401JSONResponse Error
+
+func (response WithdrawRequest401JSONResponse) VisitWithdrawRequestResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type WithdrawRequest402JSONResponse Error
+
+func (response WithdrawRequest402JSONResponse) VisitWithdrawRequestResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(402)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type WithdrawRequest422JSONResponse Error
+
+func (response WithdrawRequest422JSONResponse) VisitWithdrawRequestResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type WithdrawRequest500JSONResponse Error
+
+func (response WithdrawRequest500JSONResponse) VisitWithdrawRequestResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
 }
 
 type LoginUserRequestObject struct {
@@ -472,6 +613,12 @@ func (response RegisterUser500JSONResponse) VisitRegisterUserResponse(w http.Res
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+
+	// (GET /api/user/balance)
+	GetBalance(ctx context.Context, request GetBalanceRequestObject) (GetBalanceResponseObject, error)
+
+	// (POST /api/user/balance/withdraw)
+	WithdrawRequest(ctx context.Context, request WithdrawRequestRequestObject) (WithdrawRequestResponseObject, error)
 	// Logs user into the system
 	// (POST /api/user/login)
 	LoginUser(ctx context.Context, request LoginUserRequestObject) (LoginUserResponseObject, error)
@@ -513,6 +660,61 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
+}
+
+// GetBalance operation middleware
+func (sh *strictHandler) GetBalance(w http.ResponseWriter, r *http.Request) {
+	var request GetBalanceRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetBalance(ctx, request.(GetBalanceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetBalance")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetBalanceResponseObject); ok {
+		if err := validResponse.VisitGetBalanceResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// WithdrawRequest operation middleware
+func (sh *strictHandler) WithdrawRequest(w http.ResponseWriter, r *http.Request) {
+	var request WithdrawRequestRequestObject
+
+	var body WithdrawRequestJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.WithdrawRequest(ctx, request.(WithdrawRequestRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "WithdrawRequest")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(WithdrawRequestResponseObject); ok {
+		if err := validResponse.VisitWithdrawRequestResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // LoginUser operation middleware
@@ -636,18 +838,20 @@ func (sh *strictHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"H4sIAAAAAAAC/+xXX2/bNhD/KsRtj1qkKOlD9bYAw1BgWIdixR6GYKDFs8VCItW7UxMv0HcfSMpxXctO",
+	"2m7OsOXJNHn/+Lvf3VF3UPuu9w6dMFR3wHWDnY7LH4g8hUVPvkcSi3G79gbDr0GuyfZivYMqCat4lsHS",
+	"U6cFKrBOIANZ95j+4AoJxgw6ZNarg2Y2x/eqLGTdCsYxA8L3gyU0UP0Ok7uN+PWYwWsyOBO0rmsadBuW",
+	"n5jMwA3dIungre76FqE6Ly+yfUEWLQPvCALMyA1967VB80fA4G6LhtGC34nt5i827fjFO6wlmHnLczdp",
+	"/cq63RikwSg7E0qvmW88mV2F8/Li8sWD6CZPH9m43gsyqFi39PuJ/LWxrCwrrdgGr+oX8lEnA7ESo5h2",
+	"1M86IvIBiZNucXZ+VoTofY9O9xYquDgrzi5iLNJEGHLd23xgpHyhW+3qyKUVRsADXDrE8cpABT+iXE0i",
+	"4X7ce8cJyrIoEqGdoIuauu9bW0fd/B17t62ImToYiCa1fYLfWGkM6Rs3dzzO4riLXzByWZx/VnzfEi6h",
+	"gm/ybUnnUz3nqZgPOHrxmUB8oaNwb73iwK2QObgOO3uJzDfYRcg9z6T0t0niDb4fkAUSb5Hlypv1V6TU",
+	"b5rHfukP3WMzOc6z7AnTe1mUJ3JUlv8nwt634nmW/hSOp8b8pfw8Fng0/VjC8VDXyLwcWnUfJWTQoDZI",
+	"Ue37QRpP9s90tBPFp3NijKQ6QQqutFETdCermACrMh5ZOS8Kb23yfRLKvXKC5HSrGOkDksJJMDagTtM6",
+	"0YpV4J+yTrySBhWvWbCD42yNzY2PjcnXSeIrp6QV7PghBNIzbds+NZFeH6r2srh84g76ZP0mO9Bb3sYn",
+	"ZkLxWHcRvJW8b7V9qKI/fvoJDfjoKVam4bJ7EAMLz7+aUAsa+C83jOTo5fOI/QdGLOHKskzfQbOV8GaS",
+	"eB60f2vdvDzRoNUtoTbrNGf5XzVoN8yKw3ZmuG6pu9f+NolnpRd+kI0FF750q2RgvB7/CgAA///ZVM+R",
+	"fBEAAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

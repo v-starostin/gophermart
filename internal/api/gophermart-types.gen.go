@@ -30,8 +30,17 @@ type User struct {
 	Password string `json:"password"`
 }
 
+// WithdrawRequestJSONBody defines parameters for WithdrawRequest.
+type WithdrawRequestJSONBody struct {
+	Order *string `json:"order,omitempty"`
+	Sum   *int    `json:"sum,omitempty"`
+}
+
 // UploadOrderTextBody defines parameters for UploadOrder.
 type UploadOrderTextBody = string
+
+// WithdrawRequestJSONRequestBody defines body for WithdrawRequest for application/json ContentType.
+type WithdrawRequestJSONRequestBody WithdrawRequestJSONBody
 
 // LoginUserJSONRequestBody defines body for LoginUser for application/json ContentType.
 type LoginUserJSONRequestBody = User

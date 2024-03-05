@@ -25,12 +25,24 @@ CREATE TABLE IF NOT EXISTS orders (
 
 CREATE TABLE IF NOT EXISTS withdraws (
     id uuid NOT NULL,
-    order_id uuid UNIQUE NOT NULL REFERENCES orders(id),
-    user_id uuid UNIQUE NOT NULL REFERENCES users(id),
-    status varchar NOT NULL,
-    accrual integer,
+    order_id uuid UNIQUE NOT NULL,
+    user_id uuid NOT NULL REFERENCES users(id),
+    sum integer,
+    status varchar DEFAULT 'processing',
     processed_at timestamp DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id)
+);
+
+CREATE TABLE IF NOT EXISTS balances (
+    user_id int UNIQUE NOT NULL REFERENCES users(id),
+    balance int NOT NULL DEFAULT 0,
+    updated_at timestamp DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS withdraw_balances (
+    user_id int UNIQUE NOT NULL REFERENCES users(id),
+    amount int NOT NULL DEFAULT 0,
+    updated_at timestamp DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS accruals (

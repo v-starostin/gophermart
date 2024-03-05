@@ -15,12 +15,16 @@ import (
 	"github.com/lib/pq"
 
 	"github.com/v-starostin/gophermart/internal/luhn"
+	"github.com/v-starostin/gophermart/internal/model"
 )
 
 type Service interface {
 	RegisterUser(login, password string) error
 	Authenticate(login, password string) (string, error)
 	UploadOrder(userID uuid.UUID, number int) error
+	GetOrders(userID uuid.UUID) ([]*model.Order, error)
+	WithdrawRequest(userID uuid.UUID, order string, sum int) error
+	GetBalance(userID uuid.UUID) (int, int, error)
 }
 
 type Gophermart struct {
@@ -84,13 +88,36 @@ func (g *Gophermart) LoginUser(ctx context.Context, request LoginUserRequestObje
 }
 
 func (g *Gophermart) GetOrders(ctx context.Context, request GetOrdersRequestObject) (GetOrdersResponseObject, error) {
-	return nil, nil
+	userID, ok := ctx.Value("UserID").(uuid.UUID)
+	if !ok {
+		return GetOrders500JSONResponse{Code: http.StatusInternalServerError, Message: "Internal server error"}, nil
+	}
+	orders, err := g.service.GetOrders(userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return GetOrders204Response{}, nil
+		}
+		return GetOrders500JSONResponse{Code: http.StatusInternalServerError, Message: "Internal server error"}, nil
+	}
+
+	getOrders200Response := make(GetOrders200JSONResponse, len(orders))
+	for i, order := range orders {
+		accrual := strconv.Itoa(order.Accrual)
+		getOrders200Response[i] = Order{
+			Number:     &order.Number,
+			Status:     &order.Status,
+			Accrual:    &accrual,
+			UploadedAt: &order.UploadedAt,
+		}
+	}
+
+	return getOrders200Response, nil
 }
 
 func (g *Gophermart) UploadOrder(ctx context.Context, request UploadOrderRequestObject) (UploadOrderResponseObject, error) {
 	userID, ok := ctx.Value("UserID").(uuid.UUID)
 	if !ok {
-		return UploadOrder400JSONResponse{Code: http.StatusBadRequest, Message: "Bad request"}, nil
+		return UploadOrder500JSONResponse{Code: http.StatusBadRequest, Message: "Internal server error"}, nil
 	}
 	number, err := strconv.Atoi(*request.Body)
 	if err != nil {
@@ -113,4 +140,41 @@ func (g *Gophermart) UploadOrder(ctx context.Context, request UploadOrderRequest
 	}
 
 	return UploadOrder202Response{}, nil
+}
+
+func (g *Gophermart) GetBalance(ctx context.Context, request GetBalanceRequestObject) (GetBalanceResponseObject, error) {
+	userID, ok := ctx.Value("userID").(uuid.UUID)
+	if !ok {
+		return GetBalance500JSONResponse{Code: http.StatusBadRequest, Message: "Internal server error"}, nil
+	}
+	balance, withdrawn, err := g.service.GetBalance(userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return GetBalance200JSONResponse{}, nil
+		}
+		return GetBalance500JSONResponse{Code: http.StatusInternalServerError, Message: "Internal server error"}, nil
+	}
+	return GetBalance200JSONResponse{
+		Current:   &balance,
+		Withdrawn: &withdrawn,
+	}, nil
+}
+
+func (g *Gophermart) WithdrawRequest(ctx context.Context, request WithdrawRequestRequestObject) (WithdrawRequestResponseObject, error) {
+	orderNumber, err := strconv.Atoi(*request.Body.Order)
+	if err != nil {
+		return WithdrawRequest422JSONResponse{Code: http.StatusBadRequest, Message: "422"}, nil
+	}
+	if valid := luhn.IsValid(orderNumber); !valid {
+		return WithdrawRequest422JSONResponse{Code: http.StatusUnprocessableEntity, Message: "422"}, nil
+	}
+	userID, ok := ctx.Value("userID").(uuid.UUID)
+	if !ok {
+		return WithdrawRequest500JSONResponse{Code: http.StatusBadRequest, Message: "Internal server error"}, nil
+	}
+	err = g.service.WithdrawRequest(userID, *request.Body.Order, *request.Body.Sum)
+	if err != nil {
+		return WithdrawRequest500JSONResponse{Code: http.StatusBadRequest, Message: "Internal server error"}, nil
+	}
+	return WithdrawRequest200Response{}, nil
 }

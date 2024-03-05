@@ -26,6 +26,9 @@ type Storage interface {
 	GetUser(login, password string) (*model.User, error)
 	AddOrder(userID uuid.UUID, order model.Order) error
 	GetOrder(userID uuid.UUID, orderNumber int) (*model.Order, error)
+	GetOrders(userID uuid.UUID) ([]*model.Order, error)
+	WithdrawRequest(userID uuid.UUID, order string, sum int) error
+	GetBalance(uuid.UUID) (int, int, error)
 }
 
 type HTTPClient interface {
@@ -46,6 +49,19 @@ func New(storage Storage, secret []byte, url string) *Auth {
 		accrualURL: url,
 		client:     &http.Client{},
 	}
+}
+
+func (a *Auth) GetBalance(userID uuid.UUID) (int, int, error) {
+	return a.storage.GetBalance(userID)
+}
+
+func (a *Auth) GetOrders(userID uuid.UUID) ([]*model.Order, error) {
+	return a.storage.GetOrders(userID)
+}
+
+func (a *Auth) WithdrawRequest(userID uuid.UUID, order string, sum int) error {
+	a.storage.WithdrawRequest(userID, order, sum)
+	return nil
 }
 
 func (a *Auth) UploadOrder(userID uuid.UUID, number int) error {
