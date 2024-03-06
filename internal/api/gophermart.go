@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
@@ -25,6 +26,7 @@ type Service interface {
 	GetOrders(userID uuid.UUID) ([]*model.Order, error)
 	WithdrawRequest(userID uuid.UUID, order string, sum int) error
 	GetBalance(userID uuid.UUID) (int, int, error)
+	GetWithdrawals(userID uuid.UUID) ([]*model.Withdrawal, error)
 }
 
 type Gophermart struct {
@@ -170,11 +172,39 @@ func (g *Gophermart) WithdrawRequest(ctx context.Context, request WithdrawReques
 	}
 	userID, ok := ctx.Value("userID").(uuid.UUID)
 	if !ok {
-		return WithdrawRequest500JSONResponse{Code: http.StatusBadRequest, Message: "Internal server error"}, nil
+		return WithdrawRequest500JSONResponse{Code: http.StatusInternalServerError, Message: "Internal server error"}, nil
 	}
 	err = g.service.WithdrawRequest(userID, *request.Body.Order, *request.Body.Sum)
 	if err != nil {
-		return WithdrawRequest500JSONResponse{Code: http.StatusBadRequest, Message: "Internal server error"}, nil
+		return WithdrawRequest500JSONResponse{Code: http.StatusInternalServerError, Message: "Internal server error"}, nil
 	}
 	return WithdrawRequest200Response{}, nil
+}
+
+func (g *Gophermart) GetWithdrawals(ctx context.Context, request GetWithdrawalsRequestObject) (GetWithdrawalsResponseObject, error) {
+	userID, ok := ctx.Value("userID").(uuid.UUID)
+	if !ok {
+		return GetWithdrawals500JSONResponse{Code: http.StatusBadRequest, Message: "Internal server error"}, nil
+	}
+	withdrawals, err := g.service.GetWithdrawals(userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return GetWithdrawals204Response{}, nil
+		}
+		return GetWithdrawals500JSONResponse{Code: http.StatusInternalServerError, Message: "Internal server error"}, nil
+	}
+	ws := make(GetWithdrawals200JSONResponse, len(withdrawals))
+	for i, withdrawal := range withdrawals {
+		ws[i] = struct {
+			Order       *string    `json:"order,omitempty"`
+			ProcessedAt *time.Time `json:"processed_at,omitempty"`
+			Sum         *int       `json:"sum,omitempty"`
+		}{
+			Order:       &withdrawal.Order,
+			Sum:         &withdrawal.Sum,
+			ProcessedAt: &withdrawal.ProcessedAt,
+		}
+	}
+
+	return ws, nil
 }

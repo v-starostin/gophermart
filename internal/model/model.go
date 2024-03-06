@@ -28,3 +28,9 @@ type Order struct {
 	Accrual    int       `json:"accrual"`
 	UploadedAt time.Time `json:"uploaded_at"`
 }
+
+type Withdrawal struct {
+	Order       string
+	Sum         int
+	ProcessedAt time.Time
+}

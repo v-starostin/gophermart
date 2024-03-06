@@ -29,6 +29,7 @@ type Storage interface {
 	GetOrders(userID uuid.UUID) ([]*model.Order, error)
 	WithdrawRequest(userID uuid.UUID, order string, sum int) error
 	GetBalance(uuid.UUID) (int, int, error)
+	GetWithdrawals(userID uuid.UUID) ([]*model.Withdrawal, error)
 }
 
 type HTTPClient interface {
@@ -51,6 +52,10 @@ func New(storage Storage, secret []byte, url string) *Auth {
 	}
 }
 
+func (a *Auth) GetWithdrawals(userID uuid.UUID) ([]*model.Withdrawal, error) {
+	return a.storage.GetWithdrawals(userID)
+}
+
 func (a *Auth) GetBalance(userID uuid.UUID) (int, int, error) {
 	return a.storage.GetBalance(userID)
 }
@@ -60,8 +65,7 @@ func (a *Auth) GetOrders(userID uuid.UUID) ([]*model.Order, error) {
 }
 
 func (a *Auth) WithdrawRequest(userID uuid.UUID, order string, sum int) error {
-	a.storage.WithdrawRequest(userID, order, sum)
-	return nil
+	return a.storage.WithdrawRequest(userID, order, sum)
 }
 
 func (a *Auth) UploadOrder(userID uuid.UUID, number int) error {

@@ -15,6 +15,7 @@ import (
 	"net/url"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
@@ -41,6 +42,9 @@ type ServerInterface interface {
 	// Register user
 	// (POST /api/user/register)
 	RegisterUser(w http.ResponseWriter, r *http.Request)
+
+	// (GET /api/user/withdrawals)
+	GetWithdrawals(w http.ResponseWriter, r *http.Request)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -76,6 +80,11 @@ func (_ Unimplemented) UploadOrder(w http.ResponseWriter, r *http.Request) {
 // Register user
 // (POST /api/user/register)
 func (_ Unimplemented) RegisterUser(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// (GET /api/user/withdrawals)
+func (_ Unimplemented) GetWithdrawals(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -169,6 +178,21 @@ func (siw *ServerInterfaceWrapper) RegisterUser(w http.ResponseWriter, r *http.R
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RegisterUser(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetWithdrawals operation middleware
+func (siw *ServerInterfaceWrapper) GetWithdrawals(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetWithdrawals(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -308,6 +332,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/user/register", wrapper.RegisterUser)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/user/withdrawals", wrapper.GetWithdrawals)
 	})
 
 	return r
@@ -611,6 +638,52 @@ func (response RegisterUser500JSONResponse) VisitRegisterUserResponse(w http.Res
 	return json.NewEncoder(w).Encode(response)
 }
 
+type GetWithdrawalsRequestObject struct {
+}
+
+type GetWithdrawalsResponseObject interface {
+	VisitGetWithdrawalsResponse(w http.ResponseWriter) error
+}
+
+type GetWithdrawals200JSONResponse []struct {
+	Order       *string    `json:"order,omitempty"`
+	ProcessedAt *time.Time `json:"processed_at,omitempty"`
+	Sum         *int       `json:"sum,omitempty"`
+}
+
+func (response GetWithdrawals200JSONResponse) VisitGetWithdrawalsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetWithdrawals204Response struct {
+}
+
+func (response GetWithdrawals204Response) VisitGetWithdrawalsResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type GetWithdrawals401JSONResponse Error
+
+func (response GetWithdrawals401JSONResponse) VisitGetWithdrawalsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetWithdrawals500JSONResponse Error
+
+func (response GetWithdrawals500JSONResponse) VisitGetWithdrawalsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 
@@ -631,6 +704,9 @@ type StrictServerInterface interface {
 	// Register user
 	// (POST /api/user/register)
 	RegisterUser(ctx context.Context, request RegisterUserRequestObject) (RegisterUserResponseObject, error)
+
+	// (GET /api/user/withdrawals)
+	GetWithdrawals(ctx context.Context, request GetWithdrawalsRequestObject) (GetWithdrawalsResponseObject, error)
 }
 
 type StrictHandlerFunc = strictnethttp.StrictHTTPHandlerFunc
@@ -835,23 +911,47 @@ func (sh *strictHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GetWithdrawals operation middleware
+func (sh *strictHandler) GetWithdrawals(w http.ResponseWriter, r *http.Request) {
+	var request GetWithdrawalsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetWithdrawals(ctx, request.(GetWithdrawalsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetWithdrawals")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetWithdrawalsResponseObject); ok {
+		if err := validResponse.VisitGetWithdrawalsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+xXX2/bNhD/KsRtj1qkKOlD9bYAw1BgWIdixR6GYKDFs8VCItW7UxMv0HcfSMpxXctO",
-	"2m7OsOXJNHn/+Lvf3VF3UPuu9w6dMFR3wHWDnY7LH4g8hUVPvkcSi3G79gbDr0GuyfZivYMqCat4lsHS",
-	"U6cFKrBOIANZ95j+4AoJxgw6ZNarg2Y2x/eqLGTdCsYxA8L3gyU0UP0Ok7uN+PWYwWsyOBO0rmsadBuW",
-	"n5jMwA3dIungre76FqE6Ly+yfUEWLQPvCALMyA1967VB80fA4G6LhtGC34nt5i827fjFO6wlmHnLczdp",
-	"/cq63RikwSg7E0qvmW88mV2F8/Li8sWD6CZPH9m43gsyqFi39PuJ/LWxrCwrrdgGr+oX8lEnA7ESo5h2",
-	"1M86IvIBiZNucXZ+VoTofY9O9xYquDgrzi5iLNJEGHLd23xgpHyhW+3qyKUVRsADXDrE8cpABT+iXE0i",
-	"4X7ce8cJyrIoEqGdoIuauu9bW0fd/B17t62ImToYiCa1fYLfWGkM6Rs3dzzO4riLXzByWZx/VnzfEi6h",
-	"gm/ybUnnUz3nqZgPOHrxmUB8oaNwb73iwK2QObgOO3uJzDfYRcg9z6T0t0niDb4fkAUSb5Hlypv1V6TU",
-	"b5rHfukP3WMzOc6z7AnTe1mUJ3JUlv8nwt634nmW/hSOp8b8pfw8Fng0/VjC8VDXyLwcWnUfJWTQoDZI",
-	"Ue37QRpP9s90tBPFp3NijKQ6QQqutFETdCermACrMh5ZOS8Kb23yfRLKvXKC5HSrGOkDksJJMDagTtM6",
-	"0YpV4J+yTrySBhWvWbCD42yNzY2PjcnXSeIrp6QV7PghBNIzbds+NZFeH6r2srh84g76ZP0mO9Bb3sYn",
-	"ZkLxWHcRvJW8b7V9qKI/fvoJDfjoKVam4bJ7EAMLz7+aUAsa+C83jOTo5fOI/QdGLOHKskzfQbOV8GaS",
-	"eB60f2vdvDzRoNUtoTbrNGf5XzVoN8yKw3ZmuG6pu9f+NolnpRd+kI0FF750q2RgvB7/CgAA///ZVM+R",
-	"fBEAAA==",
+	"H4sIAAAAAAAC/+xYUW/bRgz+Kwduj1rkOOlD/bYAw1BgWIdiRR+GYGAkxr5CuruSVBMv0H8f7k6O41qx",
+	"kzZzhi1Pke/II/XxIz9dbqDybfCOnArMbkCqBbWYHn9i9hwfAvtArJbScuVrin9rkoptUOsdzLKxSXsF",
+	"XHpuUWEG1ikUoMtA+QfNiaEvoCURnN97zGr71lWUrZtD3xfA9KmzTDXM/oAh3Mr8vC/gLdc0kjRWFXfY",
+	"xMcvjizAde1F9qFrbENDMDuenhTbhqKonWwYAozYdaHxWFP9Z8TgZo1GjUo/qG3HX2xY8RcfqdJ4zHsZ",
+	"e5PGz63bzEEXlGxHUgkocuW53nQ4np6cvtqLbo5054zzrSSji3WXfruQvy+sGCsGjdgY1fzGPvkUoFZT",
+	"FsOK+RUTIp+JJftOjo6PJjF7H8hhsDCDk6PJ0UnKRRcJhhKDLTshLi+wQVclLs0pAR7hwpjHmxpm8DPp",
+	"2WAS30+Cd5KhnE4mmdBOySVPDKGxVfItP4p3644Y6YOOeXDbJviV1UXNeOXGtvtRHDfxi4ecTo4fld/3",
+	"TJcwg+/KdUuXQz+XuZnvCfTqkUB8ZaD43jiXyK1YOTiPK1uFLFfYJci9jJT0w2Dxjj51JAqZtyR65uvl",
+	"N5TUr4bHdut37UMr2Y+z7BnLezqZHijQdPp/IuztKB5n6S9xexjMX8vPXYmnox9KOOmqikQuu8bcZgkF",
+	"LAhr4uT2Y6cLz/avvLWRxZc60SdSHaAEZ1ibAbqDdUyE1dSexDivhq5tjn0Qyr1xSuywMUL8mdjQYJgG",
+	"UIu8zLQSE/lnrFNvdEFGlqLUwm62puEmu2Tybbb4RpW0Sq3sQyB/pq3HJzLj8r5un05On3mCPtu8Ke6Z",
+	"Le/TJ2ZGcdd0UbrWMjRo93X03U8/5Y4erGLTLC6bGymx+PlXMaFSDf/lgZEDvX6R2H9AYpnmVnS4B412",
+	"wrvB4kVon7RvXh9IaLFhwnqZdVb+VUK7YlYS2z3iurqzYLNTYT/cMXsqmX3oFSawj8R81L8lHnHxeZHy",
+	"fXNtvbQllyueiMEL3+mKcQ7biGj61Z/3fwcAAP//GB12d6wTAAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

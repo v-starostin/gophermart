@@ -108,14 +108,43 @@ func (s *Storage) AddOrder(userID uuid.UUID, order model.Order) error {
 	return nil
 }
 
+func (s *Storage) GetWithdrawals(userID uuid.UUID) ([]*model.Withdrawal, error) {
+	query := "select order_id, sum, processed_at from withdraws where user_id = $1 and status = $2"
+	raws, err := s.db.Query(query, userID, "success")
+	if err != nil {
+		log.Println("GetWithdrawals1 error:", err.Error())
+		return nil, err
+	}
+	defer raws.Close()
+
+	withdrawals := make([]*model.Withdrawal, 0)
+	w := &model.Withdrawal{}
+	for raws.Next() {
+		err = raws.Scan(&w.Order, &w.Sum, &w.ProcessedAt)
+		if err != nil {
+			log.Println("GetWithdrawals2 error:", err.Error())
+			return nil, err
+		}
+		withdrawals = append(withdrawals, w)
+	}
+
+	err = raws.Err()
+	if err != nil {
+		log.Println("GetWithdrawals3 error:", err.Error())
+		return nil, err
+	}
+
+	return withdrawals, nil
+}
+
 func (s *Storage) GetBalance(userID uuid.UUID) (int, int, error) {
 	var balance int
-	if err := s.db.QueryRow("select balance from accounts where user_id = $1").Scan(&balance); err != nil {
+	if err := s.db.QueryRow("select balance from accounts where user_id = $1", userID).Scan(&balance); err != nil {
 		return 0, 0, err
 	}
 
 	var withdrawn int
-	if err := s.db.QueryRow("select amount from whithdraw_balances where user_id = $1").Scan(&balance); err != nil {
+	if err := s.db.QueryRow("select amount from whithdraw_balances where user_id = $1", userID).Scan(&balance); err != nil {
 		return 0, 0, err
 	}
 

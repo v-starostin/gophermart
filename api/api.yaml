@@ -230,6 +230,43 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /api/user/withdrawals:
+    get:
+      tags:
+        - user
+      summary: ''
+      operationId: getWithdrawals
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    order:
+                      type: string
+                    sum:
+                      type: integer
+                    processed_at:
+                      type: string
+                      format: date-time
+        '204':
+          description: ''
+        '401':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 components:
   schemas:
     Order:
