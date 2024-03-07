@@ -7,6 +7,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -121,14 +122,17 @@ func (g *Gophermart) GetOrders(ctx context.Context, request GetOrdersRequestObje
 func (g *Gophermart) UploadOrder(ctx context.Context, request UploadOrderRequestObject) (UploadOrderResponseObject, error) {
 	userID, ok := ctx.Value("userID").(uuid.UUID)
 	if !ok {
-		return UploadOrder500JSONResponse{Code: http.StatusInternalServerError, Message: "Internal server error"}, nil
+		log.Println("Can not retrieve user ID")
+		return UploadOrder500JSONResponse{Code: http.StatusInternalServerError, Message: "Can not retrieve user ID"}, nil
 	}
 
 	if valid := luhn.IsValid(*request.Body); !valid {
-		return UploadOrder422JSONResponse{Code: http.StatusUnprocessableEntity, Message: "Bad request"}, nil
+		log.Println("Order number is not valid")
+		return UploadOrder422JSONResponse{Code: http.StatusUnprocessableEntity, Message: "Order number is not valid"}, nil
 	}
 
 	if err := g.service.UploadOrder(userID, *request.Body); err != nil {
+		log.Println(err.Error())
 		var pgErr *pq.Error
 		if errors.As(err, &pgErr) {
 			if pgErr.Code.Name() == "unique_violation" {
