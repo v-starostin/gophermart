@@ -7,6 +7,12 @@ import (
 	"time"
 )
 
+// Balance defines model for Balance.
+type Balance struct {
+	Current   float64 `json:"current"`
+	Withdrawn float64 `json:"withdrawn"`
+}
+
 // Error defines model for Error.
 type Error struct {
 	// Code Error code
@@ -18,7 +24,7 @@ type Error struct {
 
 // Order defines model for Order.
 type Order struct {
-	Accrual    *string    `json:"accrual,omitempty"`
+	Accrual    *float64   `json:"accrual,omitempty"`
 	Number     *string    `json:"number,omitempty"`
 	Status     *string    `json:"status,omitempty"`
 	UploadedAt *time.Time `json:"uploaded_at,omitempty"`
@@ -30,17 +36,18 @@ type User struct {
 	Password string `json:"password"`
 }
 
-// WithdrawRequestJSONBody defines parameters for WithdrawRequest.
-type WithdrawRequestJSONBody struct {
-	Order *string `json:"order,omitempty"`
-	Sum   *int    `json:"sum,omitempty"`
+// Withdraw defines model for Withdraw.
+type Withdraw struct {
+	Order       string     `json:"order"`
+	ProcessedAt *time.Time `json:"processed_at,omitempty"`
+	Sum         float64    `json:"sum"`
 }
 
 // UploadOrderTextBody defines parameters for UploadOrder.
 type UploadOrderTextBody = string
 
 // WithdrawRequestJSONRequestBody defines body for WithdrawRequest for application/json ContentType.
-type WithdrawRequestJSONRequestBody WithdrawRequestJSONBody
+type WithdrawRequestJSONRequestBody = Withdraw
 
 // LoginUserJSONRequestBody defines body for LoginUser for application/json ContentType.
 type LoginUserJSONRequestBody = User

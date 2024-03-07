@@ -1,6 +1,12 @@
 package luhn
 
-func IsValid(number int) bool {
+import "strconv"
+
+func IsValid(order string) bool {
+	number, err := strconv.Atoi(order)
+	if err != nil {
+		return false
+	}
 	var sum int
 	for i := 0; number > 0; i++ {
 		last := number % 10

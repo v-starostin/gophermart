@@ -6,7 +6,7 @@ info:
   version: 0.1.0
 tags:
   - name: user
-    description: Operations about user
+    description: ''
 paths:
   /api/user/register:
     post:
@@ -169,12 +169,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  current:
-                    type: integer
-                  withdrawn:
-                    type: integer
+                $ref: '#/components/schemas/Balance'
         '401':
           description: ''
           content:
@@ -197,12 +192,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                order:
-                  type: string
-                sum:
-                  type: integer
+              $ref: '#/components/schemas/Withdraw'
       responses:
         '200':
           description: ''
@@ -244,15 +234,7 @@ paths:
               schema:
                 type: array
                 items:
-                  type: object
-                  properties:
-                    order:
-                      type: string
-                    sum:
-                      type: integer
-                    processed_at:
-                      type: string
-                      format: date-time
+                  $ref: '#/components/schemas/Withdraw'
         '204':
           description: ''
         '401':
@@ -269,20 +251,45 @@ paths:
                 $ref: '#/components/schemas/Error'
 components:
   schemas:
+    Balance:
+      type: object
+      required:
+        - current
+        - withdrawn
+      properties:
+        current:
+          type: number
+          format: double
+        withdrawn:
+          type: number
+          format: double
     Order:
       type: object
       properties:
         number:
           type: string
-          example: 123
         status:
           type: string
-          example: ""
         uploaded_at:
           type: string
           format: date-time
         accrual:
+          type: number
+          format: double
+    Withdraw:
+      type: object
+      required:
+        - order
+        - sum
+      properties:
+        order:
           type: string
+        sum:
+          type: number
+          format: double
+        processed_at:
+          type: string
+          format: date-time
     User:
       type: object
       required:
@@ -291,18 +298,17 @@ components:
       properties:
         login:
           type: string
-          example: theUser
         password:
           type: string
-          example: '12345'
+          format: password
     Error:
+      type: object
       required:
         - code
         - message
       properties:
         code:
           type: integer
-          format: int
           description: Error code
         message:
           type: string

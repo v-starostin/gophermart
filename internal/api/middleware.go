@@ -17,6 +17,8 @@ func Authenticate(secret []byte) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			var userID uuid.UUID
 			switch r.URL.Path {
+			case "/api/user/register":
+			case "/api/user/login":
 			default:
 				authHeader := r.Header.Get("Authorization")
 				if len(authHeader) == 0 {

@@ -18,18 +18,22 @@ import (
 )
 
 const (
-	accrualAPIFormat = "%s/api/orders/%d"
+	accrualAPIFormat = "%s/api/orders/%s"
+)
+
+var (
+	ErrOrderAlreadyExists = fmt.Errorf("order already exists for current user")
 )
 
 type Storage interface {
 	AddUser(login, password string) error
 	GetUser(login, password string) (*model.User, error)
 	AddOrder(userID uuid.UUID, order model.Order) error
-	GetOrder(userID uuid.UUID, orderNumber int) (*model.Order, error)
-	GetOrders(userID uuid.UUID) ([]*model.Order, error)
-	WithdrawRequest(userID uuid.UUID, order string, sum int) error
+	GetOrder(userID uuid.UUID, orderNumber string) (*model.Order, error)
+	GetOrders(userID uuid.UUID) ([]model.Order, error)
+	WithdrawRequest(userID uuid.UUID, orderNumber string, sum int) error
 	GetBalance(uuid.UUID) (int, int, error)
-	GetWithdrawals(userID uuid.UUID) ([]*model.Withdrawal, error)
+	GetWithdrawals(userID uuid.UUID) ([]model.Withdrawal, error)
 }
 
 type HTTPClient interface {
@@ -52,32 +56,36 @@ func New(storage Storage, secret []byte, url string) *Auth {
 	}
 }
 
-func (a *Auth) GetWithdrawals(userID uuid.UUID) ([]*model.Withdrawal, error) {
+func (a *Auth) GetWithdrawals(userID uuid.UUID) ([]model.Withdrawal, error) {
 	return a.storage.GetWithdrawals(userID)
 }
 
-func (a *Auth) GetBalance(userID uuid.UUID) (int, int, error) {
-	return a.storage.GetBalance(userID)
+func (a *Auth) GetBalance(userID uuid.UUID) (float64, float64, error) {
+	b, w, err := a.storage.GetBalance(userID)
+	if err != nil {
+		return 0, 0, err
+	}
+	return float64(b), float64(w), nil
 }
 
-func (a *Auth) GetOrders(userID uuid.UUID) ([]*model.Order, error) {
+func (a *Auth) GetOrders(userID uuid.UUID) ([]model.Order, error) {
 	return a.storage.GetOrders(userID)
 }
 
-func (a *Auth) WithdrawRequest(userID uuid.UUID, order string, sum int) error {
-	return a.storage.WithdrawRequest(userID, order, sum)
+func (a *Auth) WithdrawRequest(userID uuid.UUID, orderNumber string, sum int) error {
+	return a.storage.WithdrawRequest(userID, orderNumber, sum)
 }
 
-func (a *Auth) UploadOrder(userID uuid.UUID, number int) error {
-	order, err := a.storage.GetOrder(userID, number)
+func (a *Auth) UploadOrder(userID uuid.UUID, orderNumber string) error {
+	order, err := a.storage.GetOrder(userID, orderNumber)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return err
 	}
 	if order != nil {
-		return fmt.Errorf("order %d already exists for user %s", number, userID)
+		return ErrOrderAlreadyExists
 	}
 
-	order, err = a.fetchOrder(number)
+	order, err = a.fetchOrder(orderNumber)
 	if err != nil {
 		return err
 	}
@@ -110,8 +118,8 @@ func (a *Auth) generateAccessToken(id uuid.UUID) (string, error) {
 	return string(signedToken), nil
 }
 
-func (a *Auth) fetchOrder(number int) (*model.Order, error) {
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf(accrualAPIFormat, a.accrualURL, number), nil)
+func (a *Auth) fetchOrder(orderNumber string) (*model.Order, error) {
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf(accrualAPIFormat, a.accrualURL, orderNumber), nil)
 	if err != nil {
 		return nil, err
 	}

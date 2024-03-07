@@ -15,7 +15,6 @@ import (
 	"net/url"
 	"path"
 	"strings"
-	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
@@ -347,10 +346,7 @@ type GetBalanceResponseObject interface {
 	VisitGetBalanceResponse(w http.ResponseWriter) error
 }
 
-type GetBalance200JSONResponse struct {
-	Current   *int `json:"current,omitempty"`
-	Withdrawn *int `json:"withdrawn,omitempty"`
-}
+type GetBalance200JSONResponse Balance
 
 func (response GetBalance200JSONResponse) VisitGetBalanceResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -645,11 +641,7 @@ type GetWithdrawalsResponseObject interface {
 	VisitGetWithdrawalsResponse(w http.ResponseWriter) error
 }
 
-type GetWithdrawals200JSONResponse []struct {
-	Order       *string    `json:"order,omitempty"`
-	ProcessedAt *time.Time `json:"processed_at,omitempty"`
-	Sum         *int       `json:"sum,omitempty"`
-}
+type GetWithdrawals200JSONResponse []Withdraw
 
 func (response GetWithdrawals200JSONResponse) VisitGetWithdrawalsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -938,20 +930,20 @@ func (sh *strictHandler) GetWithdrawals(w http.ResponseWriter, r *http.Request) 
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+xYUW/bRgz+Kwduj1rkOOlD/bYAw1BgWIdiRR+GYGAkxr5CuruSVBMv0H8f7k6O41qx",
-	"kzZzhi1Pke/II/XxIz9dbqDybfCOnArMbkCqBbWYHn9i9hwfAvtArJbScuVrin9rkoptUOsdzLKxSXsF",
-	"XHpuUWEG1ikUoMtA+QfNiaEvoCURnN97zGr71lWUrZtD3xfA9KmzTDXM/oAh3Mr8vC/gLdc0kjRWFXfY",
-	"xMcvjizAde1F9qFrbENDMDuenhTbhqKonWwYAozYdaHxWFP9Z8TgZo1GjUo/qG3HX2xY8RcfqdJ4zHsZ",
-	"e5PGz63bzEEXlGxHUgkocuW53nQ4np6cvtqLbo5054zzrSSji3WXfruQvy+sGCsGjdgY1fzGPvkUoFZT",
-	"FsOK+RUTIp+JJftOjo6PJjF7H8hhsDCDk6PJ0UnKRRcJhhKDLTshLi+wQVclLs0pAR7hwpjHmxpm8DPp",
-	"2WAS30+Cd5KhnE4mmdBOySVPDKGxVfItP4p3644Y6YOOeXDbJviV1UXNeOXGtvtRHDfxi4ecTo4fld/3",
-	"TJcwg+/KdUuXQz+XuZnvCfTqkUB8ZaD43jiXyK1YOTiPK1uFLFfYJci9jJT0w2Dxjj51JAqZtyR65uvl",
-	"N5TUr4bHdut37UMr2Y+z7BnLezqZHijQdPp/IuztKB5n6S9xexjMX8vPXYmnox9KOOmqikQuu8bcZgkF",
-	"LAhr4uT2Y6cLz/avvLWRxZc60SdSHaAEZ1ibAbqDdUyE1dSexDivhq5tjn0Qyr1xSuywMUL8mdjQYJgG",
-	"UIu8zLQSE/lnrFNvdEFGlqLUwm62puEmu2Tybbb4RpW0Sq3sQyB/pq3HJzLj8r5un05On3mCPtu8Ke6Z",
-	"Le/TJ2ZGcdd0UbrWMjRo93X03U8/5Y4erGLTLC6bGymx+PlXMaFSDf/lgZEDvX6R2H9AYpnmVnS4B412",
-	"wrvB4kVon7RvXh9IaLFhwnqZdVb+VUK7YlYS2z3iurqzYLNTYT/cMXsqmX3oFSawj8R81L8lHnHxeZHy",
-	"fXNtvbQllyueiMEL3+mKcQ7biGj61Z/3fwcAAP//GB12d6wTAAA=",
+	"H4sIAAAAAAAC/+xXTW/cNhD9KwTbo2opG/cQ3WqgKAIUdRE0yKEwirE43mUgkcrMKM7W2P9ekJS0a0vr",
+	"dVt7XTS+EeLHvHl8M4+60ZVvWu/QCevyRnO1wgbi8AxqcBWGYUu+RRKLcaLqiNBJGF55akB0qY3vLmvU",
+	"mZZ1i7rUrmsukfQm09dWVobg2j1o/SbThJ86S2h0+fsYaveYi3GTv/yIlYQgPxJ5mkHqTcRvkCuyrVjv",
+	"dJkWqzg3HmWd4DIBbpAZlnv3DdPjVhaybjmFns4fls+hPieDM6ihqqiD+oH89qPy5i6eTLOAdDw71bW1",
+	"B4PmD7hzjyD4ndhmPr9JBu95LoHaL62bDdsC87Uncyvm+PEQpencnVPmSP3QC2UKyw90T2GRr5D5b9GR",
+	"ae6af6LpBCNtnyYQVlt35afy+21lWVlWoNg2bY3qV/JxT6bFSh0O6b+oXyAi/ozEaW9x8uqkCJh9iw5a",
+	"q0v9+qQ4eR3JlFWkJ4fW5h0j5Zfbyl9iJCTQCAHHW6NL/RPK0BxCatx6x4niRVGkunPSdwho29pWcW/+",
+	"kb3bNpkw+pbwSpf6m3zbhfK+BeVDiEjJbSpCJqfFq0cLldrHnkDfP2JO9wQK5QVLDgoJl6AvwpfJneTX",
+	"u/L2PHM7QwG8w08dsuikPmQ582b9aJmMZbbZJIFPVfCMd3ZaLI4UaLH4mlQ4dvZ56f0cpqMnPI3o4tEP",
+	"FRx3VWjqV12tRpQ60ysEgxS3/dDJypP9M03dQnHXiDZRVEe4gjMwqqfuaBUTaFXGIyvnReEXm2IfRXJv",
+	"nSA5qBUjfUZS2C+M/tgArZOsWAX9KevEK1mh4jULNvp+tUan5fts7Dyt+JcuZgUbPsRAeuxtH1FABOt9",
+	"1b4oTp+5gz5bv8n29Jb38cV63j+e9ncXwS+StzXYQxW9+yoT6vDBLrZI5nJ7IgILz7OKEASN/j83jBTo",
+	"zYvFPoHFEi4tS/9bNVsJ7/oVL0b7qHXz5khGCzUhmHXyWf5PGe2grGi2B8x1+BGB+l6H/bCz7Bg2u/0v",
+	"eXHaQ21n++lGO2gCV3Fqc7H5KwAA///VmUmMGBQAAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

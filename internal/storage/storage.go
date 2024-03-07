@@ -6,9 +6,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/google/uuid"
+
 	"github.com/v-starostin/gophermart/internal/model"
 )
 
@@ -16,30 +16,18 @@ type Storage struct {
 	db *sql.DB
 }
 
-type user struct {
-	id       uuid.UUID
-	login    string
-	password string
-}
-
-type order struct {
-	id          uuid.UUID
-	orderNumber int
-	userID      uuid.UUID
-	accrual     int
-	status      string
-	uploadedAt  time.Time
-}
-
 func New(db *sql.DB) *Storage {
 	return &Storage{db}
 }
 
-func (s *Storage) WithdrawRequest(userID uuid.UUID, order string, sum int) error {
-	withdrawID, _ := uuid.NewRandom()
+func (s *Storage) WithdrawRequest(userID uuid.UUID, orderNumber string, sum int) error {
+	withdrawID, err := uuid.NewRandom()
+	if err != nil {
+		return err
+	}
 
-	query := "insert into withdraws (id, user_id, order_id, sum, status) values ($1,$2,$3,$4,$5)"
-	if _, err := s.db.Exec(query, withdrawID, userID, order, sum); err != nil {
+	query := "INSERT INTO withdraws (id, user_id, order_number, sum) values ($1,$2,$3,$4)"
+	if _, err := s.db.Exec(query, withdrawID, userID, orderNumber, sum); err != nil {
 		return err
 	}
 
@@ -59,8 +47,7 @@ func (s *Storage) WithdrawRequest(userID uuid.UUID, order string, sum int) error
 	balance -= sum
 	if balance < 0 {
 		tx.Rollback()
-		s.db.Exec("update withdraws set status = $1 where order_id = $2", "failure", order)
-		return fmt.Errorf("err")
+		return fmt.Errorf("insufficient funds")
 	}
 	query = "update balances set balance = $1 where user_id = $2"
 	_, err = tx.Exec(query, balance, userID)
@@ -68,16 +55,21 @@ func (s *Storage) WithdrawRequest(userID uuid.UUID, order string, sum int) error
 		return err
 	}
 
-	query = "update withdraw_balances set amount = (select amount + $1 from whithdraw_balances where user_id=$2) where user_id = $3"
+	query = "update withdraw_balances set amount = (select amount + $1 from withdraw_balances where user_id=$2) where user_id = $3"
 	_, err = tx.Exec(query, sum, userID, userID)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
-	_, err = tx.Exec("update withdraws set status = $1 where order_id = $2", "success", order)
+	_, err = tx.Exec("update withdraws set status = $1 where order_number = $2", "SUCCESS", orderNumber)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
+
+	tx.Commit()
+
 	return nil
 }
 
@@ -98,7 +90,7 @@ func (s *Storage) AddOrder(userID uuid.UUID, order model.Order) error {
 	}
 
 	query = "update balances set balance = (select sum(balance) + $1 from balances where user_id=$2)"
-	_, err = tx.Exec(query, order.Accrual)
+	_, err = tx.Exec(query, order.Accrual, userID)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -108,17 +100,17 @@ func (s *Storage) AddOrder(userID uuid.UUID, order model.Order) error {
 	return nil
 }
 
-func (s *Storage) GetWithdrawals(userID uuid.UUID) ([]*model.Withdrawal, error) {
-	query := "select order_id, sum, processed_at from withdraws where user_id = $1 and status = $2"
-	raws, err := s.db.Query(query, userID, "success")
+func (s *Storage) GetWithdrawals(userID uuid.UUID) ([]model.Withdrawal, error) {
+	query := "select order_number, sum, processed_at from withdraws where user_id = $1 and status = $2"
+	raws, err := s.db.Query(query, userID, "SUCCESS")
 	if err != nil {
 		log.Println("GetWithdrawals1 error:", err.Error())
 		return nil, err
 	}
 	defer raws.Close()
 
-	withdrawals := make([]*model.Withdrawal, 0)
-	w := &model.Withdrawal{}
+	withdrawals := make([]model.Withdrawal, 0)
+	w := model.Withdrawal{}
 	for raws.Next() {
 		err = raws.Scan(&w.Order, &w.Sum, &w.ProcessedAt)
 		if err != nil {
@@ -139,29 +131,31 @@ func (s *Storage) GetWithdrawals(userID uuid.UUID) ([]*model.Withdrawal, error) 
 
 func (s *Storage) GetBalance(userID uuid.UUID) (int, int, error) {
 	var balance int
-	if err := s.db.QueryRow("select balance from accounts where user_id = $1", userID).Scan(&balance); err != nil {
+	if err := s.db.QueryRow("select balance from balances where user_id = $1", userID).Scan(&balance); err != nil {
 		return 0, 0, err
 	}
 
 	var withdrawn int
-	if err := s.db.QueryRow("select amount from whithdraw_balances where user_id = $1", userID).Scan(&balance); err != nil {
+	if err := s.db.QueryRow("select amount from withdraw_balances where user_id = $1", userID).Scan(&withdrawn); err != nil {
 		return 0, 0, err
 	}
 
 	return balance, withdrawn, nil
 }
 
-func (s *Storage) GetOrder(userID uuid.UUID, orderNumber int) (*model.Order, error) {
-	var o order
-	query := "SELECT user_id, order_number FROM orders WHERE user_id = $1 AND order = $2"
-	if err := s.db.QueryRow(query, userID, orderNumber).Scan(&o.userID, &o.orderNumber); err != nil {
+func (s *Storage) GetOrder(userID uuid.UUID, orderNumber string) (*model.Order, error) {
+	var number string
+	query := "SELECT order_number FROM orders WHERE user_id = $1 AND order_number = $2"
+	if err := s.db.QueryRow(query, userID, orderNumber).Scan(&number); err != nil {
 		return nil, err
 	}
 
-	return nil, nil
+	return &model.Order{
+		Number: number,
+	}, nil
 }
 
-func (s *Storage) GetOrders(userID uuid.UUID) ([]*model.Order, error) {
+func (s *Storage) GetOrders(userID uuid.UUID) ([]model.Order, error) {
 	query := "select order_number, status, accrual from orders where user_id = $1"
 	raws, err := s.db.Query(query, userID)
 	if err != nil {
@@ -170,8 +164,8 @@ func (s *Storage) GetOrders(userID uuid.UUID) ([]*model.Order, error) {
 	}
 	defer raws.Close()
 
-	orders := make([]*model.Order, 0)
-	o := &model.Order{}
+	orders := make([]model.Order, 0)
+	o := model.Order{}
 	for raws.Next() {
 		err = raws.Scan(&o.Number, &o.Status, &o.Accrual)
 		if err != nil {
@@ -225,17 +219,13 @@ func (s *Storage) AddUser(login, password string) error {
 }
 
 func (s *Storage) GetUser(login, password string) (*model.User, error) {
-	var u user
+	var u model.User
 	query := "SELECT id, login, password FROM users WHERE login = $1 AND password = $2"
-	if err := s.db.QueryRow(query, login, hash(password)).Scan(&u.id, &u.login, &u.password); err != nil {
+	if err := s.db.QueryRow(query, login, hash(password)).Scan(&u.ID, &u.Login, &u.Password); err != nil {
 		return nil, err
 	}
 
-	return &model.User{
-		ID:       u.id,
-		Login:    u.login,
-		Password: u.password,
-	}, nil
+	return &u, nil
 }
 
 func hash(data string) string {
