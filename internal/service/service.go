@@ -14,6 +14,7 @@ import (
 	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/lestrrat-go/jwx/jwt"
 
+	"github.com/v-starostin/gophermart/internal/currency"
 	"github.com/v-starostin/gophermart/internal/model"
 )
 
@@ -22,7 +23,7 @@ const (
 )
 
 var (
-	ErrOrderAlreadyExists = fmt.Errorf("order already exists for current user")
+	ErrOrderAlreadyExists = errors.New("order already exists for current user")
 )
 
 type Storage interface {
@@ -61,19 +62,20 @@ func (a *Auth) GetWithdrawals(userID uuid.UUID) ([]model.Withdrawal, error) {
 }
 
 func (a *Auth) GetBalance(userID uuid.UUID) (float64, float64, error) {
-	b, w, err := a.storage.GetBalance(userID)
+	balance, withdraw, err := a.storage.GetBalance(userID)
 	if err != nil {
 		return 0, 0, err
 	}
-	return float64(b), float64(w), nil
+
+	return currency.ConvertToPrimary(balance), currency.ConvertToPrimary(withdraw), nil
 }
 
 func (a *Auth) GetOrders(userID uuid.UUID) ([]model.Order, error) {
 	return a.storage.GetOrders(userID)
 }
 
-func (a *Auth) WithdrawRequest(userID uuid.UUID, orderNumber string, sum int) error {
-	return a.storage.WithdrawRequest(userID, orderNumber, sum)
+func (a *Auth) WithdrawRequest(userID uuid.UUID, orderNumber string, sum float64) error {
+	return a.storage.WithdrawRequest(userID, orderNumber, int(sum))
 }
 
 func (a *Auth) UploadOrder(userID uuid.UUID, orderNumber string) error {

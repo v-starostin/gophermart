@@ -4,12 +4,16 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
-	"fmt"
+	"errors"
 	"log"
 
 	"github.com/google/uuid"
 
 	"github.com/v-starostin/gophermart/internal/model"
+)
+
+var (
+	ErrInsufficientBalance = errors.New("insufficient balance")
 )
 
 type Storage struct {
@@ -47,7 +51,7 @@ func (s *Storage) WithdrawRequest(userID uuid.UUID, orderNumber string, sum int)
 	balance -= sum
 	if balance < 0 {
 		tx.Rollback()
-		return fmt.Errorf("insufficient funds")
+		return ErrInsufficientBalance
 	}
 	query = "update balances set balance = $1 where user_id = $2"
 	_, err = tx.Exec(query, balance, userID)
@@ -156,7 +160,7 @@ func (s *Storage) GetOrder(userID uuid.UUID, orderNumber string) (*model.Order, 
 }
 
 func (s *Storage) GetOrders(userID uuid.UUID) ([]model.Order, error) {
-	query := "select order_number, status, accrual from orders where user_id = $1"
+	query := "select order_number, status, accrual, uploaded_at from orders where user_id = $1"
 	raws, err := s.db.Query(query, userID)
 	if err != nil {
 		log.Println("GetOrders1 error:", err.Error())
@@ -167,7 +171,7 @@ func (s *Storage) GetOrders(userID uuid.UUID) ([]model.Order, error) {
 	orders := make([]model.Order, 0)
 	o := model.Order{}
 	for raws.Next() {
-		err = raws.Scan(&o.Number, &o.Status, &o.Accrual)
+		err = raws.Scan(&o.Number, &o.Status, &o.Accrual, &o.UploadedAt)
 		if err != nil {
 			log.Println("GetOrders2 error:", err.Error())
 			return nil, err
