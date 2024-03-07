@@ -8,21 +8,21 @@ import (
 
 func TestIsValid(t *testing.T) {
 	tt := []struct {
-		number   int
-		expected bool
+		orderNumber string
+		expected    bool
 	}{
-		{0, true},
-		{5, false},
-		{12, false},
-		{42, true},
-		{9259, false},
-		{125, true},
+		{"0", true},
+		{"5", false},
+		{"12", false},
+		{"42", true},
+		{"9259", false},
+		{"125", true},
 	}
 
 	for _, test := range tt {
-		got := luhn.IsValid(test.number)
+		got := luhn.IsValid(test.orderNumber)
 		if test.expected != got {
-			t.Errorf("For %d: expected: %t, got: %t", test.number, test.expected, got)
+			t.Errorf("For %s: expected: %t, got: %t", test.orderNumber, test.expected, got)
 		}
 	}
 }
