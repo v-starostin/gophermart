@@ -12,6 +12,8 @@ import (
 	"github.com/v-starostin/gophermart/internal/model"
 )
 
+type contextKey string
+
 func Authenticate(secret []byte) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -46,7 +48,7 @@ func Authenticate(secret []byte) func(http.Handler) http.Handler {
 				}
 			}
 
-			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), "userID", userID)))
+			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), contextKey("userID"), userID)))
 		})
 	}
 }

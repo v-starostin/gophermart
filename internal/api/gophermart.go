@@ -67,7 +67,7 @@ func (g *Gophermart) RegisterUser(ctx context.Context, request RegisterUserReque
 		}, nil
 	}
 
-	return RegisterUser200Response{RegisterUser200ResponseHeaders{Authorization: token}}, nil
+	return RegisterUser200Response{RegisterUser200ResponseHeaders{Authorization: "Bearer" + token}}, nil
 }
 
 func (g *Gophermart) LoginUser(ctx context.Context, request LoginUserRequestObject) (LoginUserResponseObject, error) {
@@ -86,7 +86,7 @@ func (g *Gophermart) LoginUser(ctx context.Context, request LoginUserRequestObje
 		}, nil
 	}
 
-	return LoginUser200Response{LoginUser200ResponseHeaders{Authorization: token}}, nil
+	return LoginUser200Response{LoginUser200ResponseHeaders{Authorization: "Bearer" + token}}, nil
 }
 
 func (g *Gophermart) GetOrders(ctx context.Context, request GetOrdersRequestObject) (GetOrdersResponseObject, error) {
