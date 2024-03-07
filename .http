@@ -3,8 +3,8 @@ POST http://localhost:8080/api/user/register
 Content-Type: application/json
 
 {
-  "login": "user1",
-  "password": "password1"
+  "login": "user4",
+  "password": "password4"
 }
 
 ### POST
@@ -25,7 +25,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDk4MzEyM
 
 ### GET
 GET http://localhost:8080/api/user/orders
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDk4MzEyMzksImlhdCI6MTcwOTgyNTIzOSwic3ViIjoiM2Q1YjFiZTAtMTA0OC00M2U1LWJkMzItN2I3ZjY3YTE0NGUxIn0.eFJI_AvAwhhO7WPvaInCq7nMw6vFw_FxtWuGwK1Zc-o
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDk4NTAxMzgsImlhdCI6MTcwOTg0NDEzOCwic3ViIjoiNjJiNjNiZTctZTM4OC00Y2MzLTlhZDMtM2Y0M2ZmODI0NGI0In0.BYjbQCC1QKc2WJOeBuEEsMwDrp4vmhFTO_zfSyQ-Bms
 
 ### GET
 GET http://localhost:8080/api/user/balance
