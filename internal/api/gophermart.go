@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
+	"github.com/v-starostin/gophermart/internal/currency"
 
 	"github.com/v-starostin/gophermart/internal/luhn"
 	"github.com/v-starostin/gophermart/internal/model"
@@ -121,8 +122,7 @@ func (g *Gophermart) GetOrders(ctx context.Context, request GetOrdersRequestObje
 
 	getOrders200Response := make(GetOrders200JSONResponse, len(orders))
 	for i, order := range orders {
-		//accrual := currency.ConvertToPrimary(order.Accrual)
-		accrual := order.Accrual
+		accrual := currency.ConvertToPrimary(order.Accrual)
 		getOrders200Response[i] = Order{
 			Number:     order.Number,
 			Status:     order.Status,
@@ -269,7 +269,7 @@ func (g *Gophermart) GetWithdrawals(ctx context.Context, request GetWithdrawalsR
 	for i, withdrawal := range withdrawals {
 		ws[i] = Withdraw{
 			Order:       withdrawal.Order,
-			Sum:         withdrawal.Sum,
+			Sum:         currency.ConvertToPrimary(withdrawal.Sum),
 			ProcessedAt: withdrawal.ProcessedAt,
 		}
 	}

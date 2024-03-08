@@ -8,7 +8,7 @@ import (
 
 func TestConvertToPrimary(t *testing.T) {
 	tt := []struct {
-		value    int
+		value    int64
 		expected float64
 	}{
 		{1234, 12.34},
@@ -28,7 +28,7 @@ func TestConvertToPrimary(t *testing.T) {
 func TestConvertToSubunit(t *testing.T) {
 	tt := []struct {
 		value    float64
-		expected int
+		expected int64
 	}{
 		{12.34, 1234},
 		{565.7, 56570},

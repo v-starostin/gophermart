@@ -17,20 +17,20 @@ type User struct {
 }
 
 type AccrualOrder struct {
-	Order   string  `json:"order"`
-	Status  string  `json:"status"`
-	Accrual float64 `json:"accrual"`
+	Order   string `json:"order"`
+	Status  string `json:"status"`
+	Accrual int64  `json:"accrual"`
 }
 
 type Order struct {
 	Number     string    `json:"order"`
 	Status     string    `json:"status"`
-	Accrual    float64   `json:"accrual"`
+	Accrual    int64     `json:"accrual"`
 	UploadedAt time.Time `json:"uploaded_at"`
 }
 
 type Withdrawal struct {
 	Order       string
-	Sum         float64
+	Sum         int64
 	ProcessedAt time.Time
 }
