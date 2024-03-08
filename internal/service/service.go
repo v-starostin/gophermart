@@ -23,6 +23,7 @@ const (
 )
 
 var (
+	errNoContent          = errors.New("no content")
 	ErrOrderAlreadyExists = errors.New("order already exists for current user")
 )
 
@@ -87,12 +88,22 @@ func (a *Auth) UploadOrder(userID uuid.UUID, orderNumber string) error {
 		return err
 	}
 
+	var order model.Order
 	o, err := a.fetchOrder(orderNumber)
 	if err != nil {
+		if errors.Is(err, errNoContent) {
+			order = model.Order{
+				Number: orderNumber,
+				Status: "UNREGISTERED",
+			}
+
+			return a.storage.AddOrder(userID, order)
+		}
+
 		return err
 	}
 
-	order := model.Order{
+	order = model.Order{
 		Number:  o.Number,
 		Status:  o.Status,
 		Accrual: currency.ConvertToSubunit(o.Accrual),
@@ -138,9 +149,13 @@ func (a *Auth) fetchOrder(orderNumber string) (*order, error) {
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
+		if res.StatusCode == http.StatusNoContent {
+			return nil, errNoContent
+		}
+		log.Println("response status1:", res.Status)
 		return nil, fmt.Errorf("failed to fetch order info, status code %d", res.StatusCode)
 	}
-	log.Println("response status:", res.Status)
+	log.Println("response2 status:", res.Status)
 	b, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
