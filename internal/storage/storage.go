@@ -93,12 +93,15 @@ func (s *Storage) AddOrder(userID uuid.UUID, order model.Order) error {
 		return err
 	}
 
-	query = "update balances set balance = (select sum(balance) + $1 from balances where user_id=$2)"
-	_, err = tx.Exec(query, order.Accrual, userID)
-	if err != nil {
-		tx.Rollback()
-		return err
+	if order.Status == "PROCESSED" {
+		query = "update balances set balance = (select sum(balance) + $1 from balances where user_id=$2)"
+		_, err = tx.Exec(query, order.Accrual, userID)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
+
 	tx.Commit()
 
 	return nil
