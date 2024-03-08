@@ -30,6 +30,7 @@ type Service interface {
 }
 
 type Gophermart struct {
+	//logger slog.Logger
 	service Service
 	secret  []byte
 }
@@ -48,14 +49,14 @@ func (g *Gophermart) RegisterUser(ctx context.Context, request RegisterUserReque
 			if pqErr.Code.Name() == "23505" {
 				return RegisterUser409JSONResponse{
 					Code:    http.StatusConflict,
-					Message: err.Error(),
+					Message: "User already exists",
 				}, nil
 			}
 		}
 
 		return RegisterUser500JSONResponse{
 			Code:    http.StatusInternalServerError,
-			Message: err.Error(),
+			Message: "Internal server error",
 		}, nil
 	}
 
@@ -63,11 +64,15 @@ func (g *Gophermart) RegisterUser(ctx context.Context, request RegisterUserReque
 	if err != nil {
 		return RegisterUser500JSONResponse{
 			Code:    http.StatusInternalServerError,
-			Message: err.Error(),
+			Message: "Internal server error",
 		}, nil
 	}
 
-	return RegisterUser200Response{RegisterUser200ResponseHeaders{Authorization: "Bearer " + token}}, nil
+	return RegisterUser200Response{
+		RegisterUser200ResponseHeaders{
+			Authorization: "Bearer " + token,
+		},
+	}, nil
 }
 
 func (g *Gophermart) LoginUser(ctx context.Context, request LoginUserRequestObject) (LoginUserResponseObject, error) {
@@ -76,13 +81,13 @@ func (g *Gophermart) LoginUser(ctx context.Context, request LoginUserRequestObje
 		if errors.Is(err, sql.ErrNoRows) {
 			return LoginUser401JSONResponse{
 				Code:    http.StatusUnauthorized,
-				Message: err.Error(),
+				Message: "Unauthorized",
 			}, nil
 		}
 
 		return LoginUser500JSONResponse{
 			Code:    http.StatusInternalServerError,
-			Message: err.Error(),
+			Message: "Internal server error",
 		}, nil
 	}
 
@@ -94,7 +99,7 @@ func (g *Gophermart) LoginUser(ctx context.Context, request LoginUserRequestObje
 }
 
 func (g *Gophermart) GetOrders(ctx context.Context, request GetOrdersRequestObject) (GetOrdersResponseObject, error) {
-	userID, ok := ctx.Value(userID).(uuid.UUID)
+	userID, ok := ctx.Value(keyUserID).(uuid.UUID)
 	if !ok {
 		return GetOrders500JSONResponse{
 			Code:    http.StatusInternalServerError,
@@ -110,7 +115,7 @@ func (g *Gophermart) GetOrders(ctx context.Context, request GetOrdersRequestObje
 
 		return GetOrders500JSONResponse{
 			Code:    http.StatusInternalServerError,
-			Message: err.Error(),
+			Message: "Internal server error",
 		}, nil
 	}
 
@@ -130,7 +135,7 @@ func (g *Gophermart) GetOrders(ctx context.Context, request GetOrdersRequestObje
 }
 
 func (g *Gophermart) UploadOrder(ctx context.Context, request UploadOrderRequestObject) (UploadOrderResponseObject, error) {
-	userID, ok := ctx.Value(userID).(uuid.UUID)
+	userID, ok := ctx.Value(keyUserID).(uuid.UUID)
 	if !ok {
 		log.Println("Can not retrieve user ID")
 		return UploadOrder500JSONResponse{
@@ -143,7 +148,7 @@ func (g *Gophermart) UploadOrder(ctx context.Context, request UploadOrderRequest
 		log.Println("Order number is not valid")
 		return UploadOrder422JSONResponse{
 			Code:    http.StatusUnprocessableEntity,
-			Message: "Order number is not valid",
+			Message: "Invalid order number",
 		}, nil
 	}
 
@@ -154,7 +159,7 @@ func (g *Gophermart) UploadOrder(ctx context.Context, request UploadOrderRequest
 			if pgErr.Code.Name() == "unique_violation" {
 				return UploadOrder409JSONResponse{
 					Code:    http.StatusConflict,
-					Message: err.Error(),
+					Message: "Order already exists",
 				}, nil
 			}
 		}
@@ -165,7 +170,7 @@ func (g *Gophermart) UploadOrder(ctx context.Context, request UploadOrderRequest
 
 		return UploadOrder500JSONResponse{
 			Code:    http.StatusInternalServerError,
-			Message: err.Error(),
+			Message: "Internal server error",
 		}, nil
 	}
 
@@ -173,7 +178,7 @@ func (g *Gophermart) UploadOrder(ctx context.Context, request UploadOrderRequest
 }
 
 func (g *Gophermart) GetBalance(ctx context.Context, request GetBalanceRequestObject) (GetBalanceResponseObject, error) {
-	userID, ok := ctx.Value(userID).(uuid.UUID)
+	userID, ok := ctx.Value(keyUserID).(uuid.UUID)
 	if !ok {
 		log.Println("Can not retrieve user ID")
 		return GetBalance500JSONResponse{
@@ -191,7 +196,7 @@ func (g *Gophermart) GetBalance(ctx context.Context, request GetBalanceRequestOb
 
 		return GetBalance500JSONResponse{
 			Code:    http.StatusInternalServerError,
-			Message: err.Error(),
+			Message: "Internal server error",
 		}, nil
 	}
 
@@ -202,7 +207,7 @@ func (g *Gophermart) GetBalance(ctx context.Context, request GetBalanceRequestOb
 }
 
 func (g *Gophermart) WithdrawRequest(ctx context.Context, request WithdrawRequestRequestObject) (WithdrawRequestResponseObject, error) {
-	userID, ok := ctx.Value(userID).(uuid.UUID)
+	userID, ok := ctx.Value(keyUserID).(uuid.UUID)
 	if !ok {
 		log.Println("Can not retrieve user ID")
 		return WithdrawRequest500JSONResponse{
@@ -230,7 +235,7 @@ func (g *Gophermart) WithdrawRequest(ctx context.Context, request WithdrawReques
 
 		return WithdrawRequest500JSONResponse{
 			Code:    http.StatusInternalServerError,
-			Message: err.Error(),
+			Message: "Internal server error",
 		}, nil
 	}
 
@@ -238,7 +243,7 @@ func (g *Gophermart) WithdrawRequest(ctx context.Context, request WithdrawReques
 }
 
 func (g *Gophermart) GetWithdrawals(ctx context.Context, request GetWithdrawalsRequestObject) (GetWithdrawalsResponseObject, error) {
-	userID, ok := ctx.Value(userID).(uuid.UUID)
+	userID, ok := ctx.Value(keyUserID).(uuid.UUID)
 	if !ok {
 		log.Println("Can not retrieve user ID")
 		return GetWithdrawals500JSONResponse{
@@ -256,7 +261,7 @@ func (g *Gophermart) GetWithdrawals(ctx context.Context, request GetWithdrawalsR
 
 		return GetWithdrawals500JSONResponse{
 			Code:    http.StatusInternalServerError,
-			Message: err.Error(),
+			Message: "Internal server error",
 		}, nil
 	}
 
