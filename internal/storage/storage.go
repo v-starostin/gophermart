@@ -163,7 +163,7 @@ func (s *Storage) GetOrder(userID uuid.UUID, orderNumber string) (*model.Order, 
 }
 
 func (s *Storage) GetOrders(userID uuid.UUID) ([]model.Order, error) {
-	query := "select order_number, status, accrual, uploaded_at from orders where user_id = $1"
+	query := "select order_number, status, accrual, uploaded_at from orders where user_id = $1 AND status <> 'UNREGISTERED'"
 	raws, err := s.db.Query(query, userID)
 	if err != nil {
 		log.Println("GetOrders1 error:", err.Error())
