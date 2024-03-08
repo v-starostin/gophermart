@@ -267,10 +267,11 @@ func (g *Gophermart) GetWithdrawals(ctx context.Context, request GetWithdrawalsR
 
 	ws := make(GetWithdrawals200JSONResponse, len(withdrawals))
 	for i, withdrawal := range withdrawals {
+		processedAt := withdrawal.ProcessedAt
 		ws[i] = Withdraw{
 			Order:       withdrawal.Order,
 			Sum:         currency.ConvertToPrimary(withdrawal.Sum),
-			ProcessedAt: withdrawal.ProcessedAt,
+			ProcessedAt: &processedAt,
 		}
 	}
 

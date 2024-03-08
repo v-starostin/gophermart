@@ -280,7 +280,6 @@ components:
       required:
         - order
         - sum
-        - processed_at
       properties:
         order:
           type: string
