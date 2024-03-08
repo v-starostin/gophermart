@@ -137,6 +137,9 @@ func (a *Auth) fetchOrder(orderNumber string) (*order, error) {
 		return nil, err
 	}
 	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to fetch order info, status code %d", res.StatusCode)
+	}
 	log.Println("response status:", res.Status)
 	b, err := io.ReadAll(res.Body)
 	if err != nil {
