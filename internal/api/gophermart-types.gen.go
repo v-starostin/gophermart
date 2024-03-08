@@ -24,10 +24,10 @@ type Error struct {
 
 // Order defines model for Order.
 type Order struct {
-	Accrual    *float64   `json:"accrual,omitempty"`
-	Number     *string    `json:"number,omitempty"`
-	Status     *string    `json:"status,omitempty"`
-	UploadedAt *time.Time `json:"uploaded_at,omitempty"`
+	Accrual    *float64  `json:"accrual,omitempty"`
+	Number     string    `json:"number"`
+	Status     string    `json:"status"`
+	UploadedAt time.Time `json:"uploaded_at"`
 }
 
 // User defines model for User.
@@ -38,9 +38,9 @@ type User struct {
 
 // Withdraw defines model for Withdraw.
 type Withdraw struct {
-	Order       string     `json:"order"`
-	ProcessedAt *time.Time `json:"processed_at,omitempty"`
-	Sum         float64    `json:"sum"`
+	Order       string    `json:"order"`
+	ProcessedAt time.Time `json:"processed_at"`
+	Sum         float64   `json:"sum"`
 }
 
 // UploadOrderTextBody defines parameters for UploadOrder.

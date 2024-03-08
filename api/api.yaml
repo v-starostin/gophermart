@@ -1,19 +1,15 @@
 openapi: 3.0.3
 info:
-  title: Project Name
-  description: |-
-    This is a simple Project
+  title: Gophermart
   version: 0.1.0
 tags:
   - name: user
-    description: ''
 paths:
   /api/user/register:
     post:
       tags:
         - user
       summary: Register user
-      description: ''
       operationId: registerUser
       requestBody:
         content:
@@ -22,7 +18,7 @@ paths:
               $ref: '#/components/schemas/User'
       responses:
         '200':
-          description: successful operation
+          description: Successful operation
           headers:
             Authorization:
               schema:
@@ -50,7 +46,6 @@ paths:
       tags:
         - user
       summary: Logs user into the system
-      description: ''
       operationId: loginUser
       requestBody:
         content:
@@ -59,7 +54,7 @@ paths:
               $ref: '#/components/schemas/User'
       responses:
         '200':
-          description: successful operation
+          description: Successful operation
           headers:
             Authorization:
               schema:
@@ -86,7 +81,7 @@ paths:
     post:
       tags:
         - user
-      summary: ''
+      summary: Upload order number
       operationId: uploadOrder
       requestBody:
         required: true
@@ -96,7 +91,7 @@ paths:
               type: string
       responses:
         '200':
-          description: ''
+          description: Order for current user already exists
         '202':
           description: Order is created
         '400':
@@ -106,25 +101,25 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '401':
-          description: ''
+          description: Unauthorized
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
-          description: ''
+          description: Order already exists
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
-          description: ''
+          description: Invalid order number
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '500':
-          description: ''
+          description: Internal server error
           content:
             application/json:
               schema:
@@ -132,11 +127,11 @@ paths:
     get:
       tags:
         - user
-      summary: ''
+      summary: Get list of orders
       operationId: getOrders
       responses:
         '200':
-          description: ''
+          description: Successful operation
           content:
             application/json:
               schema:
@@ -144,15 +139,15 @@ paths:
                 items:
                   $ref: '#/components/schemas/Order'
         '204':
-          description: ''
+          description: No orders
         '401':
-          description: ''
+          description: Unauthorized
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '500':
-          description: ''
+          description: Internal server error
           content:
             application/json:
               schema:
@@ -161,23 +156,23 @@ paths:
     get:
       tags:
         - user
-      summary: ''
+      summary: Get user's balance
       operationId: getBalance
       responses:
         '200':
-          description: ''
+          description: Successful operation
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Balance'
         '401':
-          description: ''
+          description: Unauthorized
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '500':
-          description: ''
+          description: Internal server error
           content:
             application/json:
               schema:
@@ -186,7 +181,7 @@ paths:
     post:
       tags:
         - user
-      summary: ''
+      summary: Withdraw request
       operationId: withdrawRequest
       requestBody:
         content:
@@ -195,27 +190,27 @@ paths:
               $ref: '#/components/schemas/Withdraw'
       responses:
         '200':
-          description: ''
+          description: Successful operation
         '401':
-          description: ''
+          description: Unauthorized
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '402':
-          description: ''
+          description: Insufficient balance
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
-          description: ''
+          description: Invalid order number
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '500':
-          description: ''
+          description: Internal server error
           content:
             application/json:
               schema:
@@ -224,11 +219,11 @@ paths:
     get:
       tags:
         - user
-      summary: ''
+      summary: Get list of successful withdrawals
       operationId: getWithdrawals
       responses:
         '200':
-          description: ''
+          description: Successful operation
           content:
             application/json:
               schema:
@@ -236,15 +231,15 @@ paths:
                 items:
                   $ref: '#/components/schemas/Withdraw'
         '204':
-          description: ''
+          description: No withdrawals
         '401':
-          description: ''
+          description: Unauthorized
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '500':
-          description: ''
+          description: Internal server error
           content:
             application/json:
               schema:
@@ -265,6 +260,10 @@ components:
           format: double
     Order:
       type: object
+      required:
+        - number
+        - status
+        - uploaded_at
       properties:
         number:
           type: string
@@ -281,6 +280,7 @@ components:
       required:
         - order
         - sum
+        - processed_at
       properties:
         order:
           type: string

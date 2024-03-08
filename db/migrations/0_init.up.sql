@@ -17,16 +17,16 @@ CREATE TABLE IF NOT EXISTS orders (
     order_number varchar UNIQUE NOT NULL,
     user_id uuid NOT NULL REFERENCES users(id),
     status varchar NOT NULL,
-    accrual bigint NOT NULL,
+    accrual numeric(11,3) NOT NULL,
     uploaded_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id)
 );
 
-CREATE TABLE IF NOT EXISTS withdraws (
+CREATE TABLE IF NOT EXISTS withdrawals (
     id uuid NOT NULL,
     order_number varchar UNIQUE NOT NULL,
     user_id uuid NOT NULL REFERENCES users(id),
-    sum bigint NOT NULL,
+    sum numeric(11,3) NOT NULL,
     status varchar NOT NULL DEFAULT 'FAILURE',
     processed_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id)
@@ -34,12 +34,12 @@ CREATE TABLE IF NOT EXISTS withdraws (
 
 CREATE TABLE IF NOT EXISTS balances (
     user_id uuid PRIMARY KEY REFERENCES users(id),
-    balance bigint NOT NULL DEFAULT 0,
+    balance numeric(11,3) NOT NULL DEFAULT 0,
     updated_at timestamp DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS withdraw_balances (
     user_id uuid PRIMARY KEY REFERENCES users(id),
-    amount bigint NOT NULL DEFAULT 0,
+    sum numeric(11,3) NOT NULL DEFAULT 0,
     updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

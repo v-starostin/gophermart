@@ -9,10 +9,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/lestrrat-go/jwx/jwt"
+
 	"github.com/v-starostin/gophermart/internal/model"
 )
 
 type contextKey string
+
+const userID contextKey = "userID"
 
 func Authenticate(secret []byte) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -48,7 +51,7 @@ func Authenticate(secret []byte) func(http.Handler) http.Handler {
 				}
 			}
 
-			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), contextKey("userID"), userID)))
+			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), userID, userID)))
 		})
 	}
 }

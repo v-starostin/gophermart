@@ -23,25 +23,25 @@ import (
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
-
+	// Get user's balance
 	// (GET /api/user/balance)
 	GetBalance(w http.ResponseWriter, r *http.Request)
-
+	// Withdraw request
 	// (POST /api/user/balance/withdraw)
 	WithdrawRequest(w http.ResponseWriter, r *http.Request)
 	// Logs user into the system
 	// (POST /api/user/login)
 	LoginUser(w http.ResponseWriter, r *http.Request)
-
+	// Get list of orders
 	// (GET /api/user/orders)
 	GetOrders(w http.ResponseWriter, r *http.Request)
-
+	// Upload order number
 	// (POST /api/user/orders)
 	UploadOrder(w http.ResponseWriter, r *http.Request)
 	// Register user
 	// (POST /api/user/register)
 	RegisterUser(w http.ResponseWriter, r *http.Request)
-
+	// Get list of successful withdrawals
 	// (GET /api/user/withdrawals)
 	GetWithdrawals(w http.ResponseWriter, r *http.Request)
 }
@@ -50,11 +50,13 @@ type ServerInterface interface {
 
 type Unimplemented struct{}
 
+// Get user's balance
 // (GET /api/user/balance)
 func (_ Unimplemented) GetBalance(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// Withdraw request
 // (POST /api/user/balance/withdraw)
 func (_ Unimplemented) WithdrawRequest(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -66,11 +68,13 @@ func (_ Unimplemented) LoginUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// Get list of orders
 // (GET /api/user/orders)
 func (_ Unimplemented) GetOrders(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// Upload order number
 // (POST /api/user/orders)
 func (_ Unimplemented) UploadOrder(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -82,6 +86,7 @@ func (_ Unimplemented) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// Get list of successful withdrawals
 // (GET /api/user/withdrawals)
 func (_ Unimplemented) GetWithdrawals(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -678,25 +683,25 @@ func (response GetWithdrawals500JSONResponse) VisitGetWithdrawalsResponse(w http
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
-
+	// Get user's balance
 	// (GET /api/user/balance)
 	GetBalance(ctx context.Context, request GetBalanceRequestObject) (GetBalanceResponseObject, error)
-
+	// Withdraw request
 	// (POST /api/user/balance/withdraw)
 	WithdrawRequest(ctx context.Context, request WithdrawRequestRequestObject) (WithdrawRequestResponseObject, error)
 	// Logs user into the system
 	// (POST /api/user/login)
 	LoginUser(ctx context.Context, request LoginUserRequestObject) (LoginUserResponseObject, error)
-
+	// Get list of orders
 	// (GET /api/user/orders)
 	GetOrders(ctx context.Context, request GetOrdersRequestObject) (GetOrdersResponseObject, error)
-
+	// Upload order number
 	// (POST /api/user/orders)
 	UploadOrder(ctx context.Context, request UploadOrderRequestObject) (UploadOrderResponseObject, error)
 	// Register user
 	// (POST /api/user/register)
 	RegisterUser(ctx context.Context, request RegisterUserRequestObject) (RegisterUserResponseObject, error)
-
+	// Get list of successful withdrawals
 	// (GET /api/user/withdrawals)
 	GetWithdrawals(ctx context.Context, request GetWithdrawalsRequestObject) (GetWithdrawalsResponseObject, error)
 }
@@ -930,20 +935,22 @@ func (sh *strictHandler) GetWithdrawals(w http.ResponseWriter, r *http.Request) 
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+xXTW/cNhD9KwTbo2opG/cQ3WqgKAIUdRE0yKEwirE43mUgkcrMKM7W2P9ekJS0a0vr",
-	"dVt7XTS+EeLHvHl8M4+60ZVvWu/QCevyRnO1wgbi8AxqcBWGYUu+RRKLcaLqiNBJGF55akB0qY3vLmvU",
-	"mZZ1i7rUrmsukfQm09dWVobg2j1o/SbThJ86S2h0+fsYaveYi3GTv/yIlYQgPxJ5mkHqTcRvkCuyrVjv",
-	"dJkWqzg3HmWd4DIBbpAZlnv3DdPjVhaybjmFns4fls+hPieDM6ihqqiD+oH89qPy5i6eTLOAdDw71bW1",
-	"B4PmD7hzjyD4ndhmPr9JBu95LoHaL62bDdsC87Uncyvm+PEQpencnVPmSP3QC2UKyw90T2GRr5D5b9GR",
-	"ae6af6LpBCNtnyYQVlt35afy+21lWVlWoNg2bY3qV/JxT6bFSh0O6b+oXyAi/ozEaW9x8uqkCJh9iw5a",
-	"q0v9+qQ4eR3JlFWkJ4fW5h0j5Zfbyl9iJCTQCAHHW6NL/RPK0BxCatx6x4niRVGkunPSdwho29pWcW/+",
-	"kb3bNpkw+pbwSpf6m3zbhfK+BeVDiEjJbSpCJqfFq0cLldrHnkDfP2JO9wQK5QVLDgoJl6AvwpfJneTX",
-	"u/L2PHM7QwG8w08dsuikPmQ582b9aJmMZbbZJIFPVfCMd3ZaLI4UaLH4mlQ4dvZ56f0cpqMnPI3o4tEP",
-	"FRx3VWjqV12tRpQ60ysEgxS3/dDJypP9M03dQnHXiDZRVEe4gjMwqqfuaBUTaFXGIyvnReEXm2IfRXJv",
-	"nSA5qBUjfUZS2C+M/tgArZOsWAX9KevEK1mh4jULNvp+tUan5fts7Dyt+JcuZgUbPsRAeuxtH1FABOt9",
-	"1b4oTp+5gz5bv8n29Jb38cV63j+e9ncXwS+StzXYQxW9+yoT6vDBLrZI5nJ7IgILz7OKEASN/j83jBTo",
-	"zYvFPoHFEi4tS/9bNVsJ7/oVL0b7qHXz5khGCzUhmHXyWf5PGe2grGi2B8x1+BGB+l6H/bCz7Bg2u/0v",
-	"eXHaQ21n++lGO2gCV3Fqc7H5KwAA///VmUmMGBQAAA==",
+	"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",
+	"AA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
