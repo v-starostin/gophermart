@@ -107,12 +107,13 @@ func (g *Gophermart) GetOrders(ctx context.Context, request GetOrdersRequestObje
 
 	getOrders200Response := make(GetOrders200JSONResponse, len(orders))
 	for i, order := range orders {
-		accrual := currency.ConvertToPrimary(order.Accrual)
+		o := order
+		accrual := currency.ConvertToPrimary(o.Accrual)
 		getOrders200Response[i] = Order{
-			Number:     &order.Number,
-			Status:     &order.Status,
+			Number:     &o.Number,
+			Status:     &o.Status,
 			Accrual:    &accrual,
-			UploadedAt: &order.UploadedAt,
+			UploadedAt: &o.UploadedAt,
 		}
 	}
 

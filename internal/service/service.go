@@ -83,7 +83,7 @@ func (a *Auth) UploadOrder(userID uuid.UUID, orderNumber string) error {
 	if err == nil {
 		return ErrOrderAlreadyExists
 	}
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+	if !errors.Is(err, sql.ErrNoRows) {
 		return err
 	}
 
@@ -144,6 +144,7 @@ func (a *Auth) fetchOrder(orderNumber string) (*order, error) {
 	}
 	var o order
 	if err := json.Unmarshal(b, &o); err != nil {
+		log.Println("fetchOrder:", err.Error())
 		return nil, err
 	}
 	return &o, nil

@@ -19,30 +19,30 @@ Content-Type: application/json
 ### POST
 POST http://localhost:8080/api/user/orders
 Content-Type: text/plain
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDk4ODg3NTUsImlhdCI6MTcwOTg4Mjc1NSwic3ViIjoiNjJiNjNiZTctZTM4OC00Y2MzLTlhZDMtM2Y0M2ZmODI0NGI0In0.ntW_oIr0QjrwUbO5juY7USvACmp7K8DA9RLkMRidxA8
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDk4OTE0MjcsImlhdCI6MTcwOTg4NTQyNywic3ViIjoiNGExMmFhNWQtM2Q1Yy00NDFjLWEzZTItOTA5ZjJkMjNjOTRkIn0.LfZWMTH5HC1Gp-u93Z0rqldHU1-ilPlEhs2LUWMzFXQ
 
-406
+5009
 
 ### GET
 GET http://localhost:8080/api/user/orders
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDk4ODg3NTUsImlhdCI6MTcwOTg4Mjc1NSwic3ViIjoiNjJiNjNiZTctZTM4OC00Y2MzLTlhZDMtM2Y0M2ZmODI0NGI0In0.ntW_oIr0QjrwUbO5juY7USvACmp7K8DA9RLkMRidxA8
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDk4OTE0MjcsImlhdCI6MTcwOTg4NTQyNywic3ViIjoiNGExMmFhNWQtM2Q1Yy00NDFjLWEzZTItOTA5ZjJkMjNjOTRkIn0.LfZWMTH5HC1Gp-u93Z0rqldHU1-ilPlEhs2LUWMzFXQ
 
 ### GET
 GET http://localhost:8080/api/user/balance
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDk4ODg3NTUsImlhdCI6MTcwOTg4Mjc1NSwic3ViIjoiNjJiNjNiZTctZTM4OC00Y2MzLTlhZDMtM2Y0M2ZmODI0NGI0In0.ntW_oIr0QjrwUbO5juY7USvACmp7K8DA9RLkMRidxA8
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDk4OTE0MjcsImlhdCI6MTcwOTg4NTQyNywic3ViIjoiNGExMmFhNWQtM2Q1Yy00NDFjLWEzZTItOTA5ZjJkMjNjOTRkIn0.LfZWMTH5HC1Gp-u93Z0rqldHU1-ilPlEhs2LUWMzFXQ
 
 ### GET
 GET http://localhost:8080/api/user/withdrawals
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDk4ODg3NTUsImlhdCI6MTcwOTg4Mjc1NSwic3ViIjoiNjJiNjNiZTctZTM4OC00Y2MzLTlhZDMtM2Y0M2ZmODI0NGI0In0.ntW_oIr0QjrwUbO5juY7USvACmp7K8DA9RLkMRidxA8
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDk4OTE0MjcsImlhdCI6MTcwOTg4NTQyNywic3ViIjoiNGExMmFhNWQtM2Q1Yy00NDFjLWEzZTItOTA5ZjJkMjNjOTRkIn0.LfZWMTH5HC1Gp-u93Z0rqldHU1-ilPlEhs2LUWMzFXQ
 
 ### POST
 POST http://localhost:8080/api/user/balance/withdraw
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDk4ODg3NTUsImlhdCI6MTcwOTg4Mjc1NSwic3ViIjoiNjJiNjNiZTctZTM4OC00Y2MzLTlhZDMtM2Y0M2ZmODI0NGI0In0.ntW_oIr0QjrwUbO5juY7USvACmp7K8DA9RLkMRidxA8
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDk4OTE0MjcsImlhdCI6MTcwOTg4NTQyNywic3ViIjoiNGExMmFhNWQtM2Q1Yy00NDFjLWEzZTItOTA5ZjJkMjNjOTRkIn0.LfZWMTH5HC1Gp-u93Z0rqldHU1-ilPlEhs2LUWMzFXQ
 
 {
-  "order": "7005",
-  "sum": 3.5
+  "order": "4002",
+  "sum": 6.31
 }
 
 ### GET
@@ -54,11 +54,11 @@ POST http://localhost:8081/api/orders
 Content-Type: application/json
 
 {
-  "order": "406",
+  "order": "5009",
   "goods": [
     {
       "description": "Стиральная машинка LG",
-      "price": 123.25
+      "price": 123.12345
     }
   ]
 }
