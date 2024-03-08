@@ -26,9 +26,9 @@ type ServerInterface interface {
 	// Get user's balance
 	// (GET /api/user/balance)
 	GetBalance(w http.ResponseWriter, r *http.Request)
-	// Withdraw request
+	// Withdrawal request
 	// (POST /api/user/balance/withdraw)
-	WithdrawRequest(w http.ResponseWriter, r *http.Request)
+	WithdrawalRequest(w http.ResponseWriter, r *http.Request)
 	// Logs user into the system
 	// (POST /api/user/login)
 	LoginUser(w http.ResponseWriter, r *http.Request)
@@ -56,9 +56,9 @@ func (_ Unimplemented) GetBalance(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Withdraw request
+// Withdrawal request
 // (POST /api/user/balance/withdraw)
-func (_ Unimplemented) WithdrawRequest(w http.ResponseWriter, r *http.Request) {
+func (_ Unimplemented) WithdrawalRequest(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -116,12 +116,12 @@ func (siw *ServerInterfaceWrapper) GetBalance(w http.ResponseWriter, r *http.Req
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// WithdrawRequest operation middleware
-func (siw *ServerInterfaceWrapper) WithdrawRequest(w http.ResponseWriter, r *http.Request) {
+// WithdrawalRequest operation middleware
+func (siw *ServerInterfaceWrapper) WithdrawalRequest(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.WithdrawRequest(w, r)
+		siw.Handler.WithdrawalRequest(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -323,7 +323,7 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/api/user/balance", wrapper.GetBalance)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/api/user/balance/withdraw", wrapper.WithdrawRequest)
+		r.Post(options.BaseURL+"/api/user/balance/withdraw", wrapper.WithdrawalRequest)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/user/login", wrapper.LoginUser)
@@ -378,52 +378,52 @@ func (response GetBalance500JSONResponse) VisitGetBalanceResponse(w http.Respons
 	return json.NewEncoder(w).Encode(response)
 }
 
-type WithdrawRequestRequestObject struct {
-	Body *WithdrawRequestJSONRequestBody
+type WithdrawalRequestRequestObject struct {
+	Body *WithdrawalRequestJSONRequestBody
 }
 
-type WithdrawRequestResponseObject interface {
-	VisitWithdrawRequestResponse(w http.ResponseWriter) error
+type WithdrawalRequestResponseObject interface {
+	VisitWithdrawalRequestResponse(w http.ResponseWriter) error
 }
 
-type WithdrawRequest200Response struct {
+type WithdrawalRequest200Response struct {
 }
 
-func (response WithdrawRequest200Response) VisitWithdrawRequestResponse(w http.ResponseWriter) error {
+func (response WithdrawalRequest200Response) VisitWithdrawalRequestResponse(w http.ResponseWriter) error {
 	w.WriteHeader(200)
 	return nil
 }
 
-type WithdrawRequest401JSONResponse Error
+type WithdrawalRequest401JSONResponse Error
 
-func (response WithdrawRequest401JSONResponse) VisitWithdrawRequestResponse(w http.ResponseWriter) error {
+func (response WithdrawalRequest401JSONResponse) VisitWithdrawalRequestResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(401)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type WithdrawRequest402JSONResponse Error
+type WithdrawalRequest402JSONResponse Error
 
-func (response WithdrawRequest402JSONResponse) VisitWithdrawRequestResponse(w http.ResponseWriter) error {
+func (response WithdrawalRequest402JSONResponse) VisitWithdrawalRequestResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(402)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type WithdrawRequest422JSONResponse Error
+type WithdrawalRequest422JSONResponse Error
 
-func (response WithdrawRequest422JSONResponse) VisitWithdrawRequestResponse(w http.ResponseWriter) error {
+func (response WithdrawalRequest422JSONResponse) VisitWithdrawalRequestResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(422)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type WithdrawRequest500JSONResponse Error
+type WithdrawalRequest500JSONResponse Error
 
-func (response WithdrawRequest500JSONResponse) VisitWithdrawRequestResponse(w http.ResponseWriter) error {
+func (response WithdrawalRequest500JSONResponse) VisitWithdrawalRequestResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -646,7 +646,7 @@ type GetWithdrawalsResponseObject interface {
 	VisitGetWithdrawalsResponse(w http.ResponseWriter) error
 }
 
-type GetWithdrawals200JSONResponse []Withdraw
+type GetWithdrawals200JSONResponse []Withdrawal
 
 func (response GetWithdrawals200JSONResponse) VisitGetWithdrawalsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -686,9 +686,9 @@ type StrictServerInterface interface {
 	// Get user's balance
 	// (GET /api/user/balance)
 	GetBalance(ctx context.Context, request GetBalanceRequestObject) (GetBalanceResponseObject, error)
-	// Withdraw request
+	// Withdrawal request
 	// (POST /api/user/balance/withdraw)
-	WithdrawRequest(ctx context.Context, request WithdrawRequestRequestObject) (WithdrawRequestResponseObject, error)
+	WithdrawalRequest(ctx context.Context, request WithdrawalRequestRequestObject) (WithdrawalRequestResponseObject, error)
 	// Logs user into the system
 	// (POST /api/user/login)
 	LoginUser(ctx context.Context, request LoginUserRequestObject) (LoginUserResponseObject, error)
@@ -759,11 +759,11 @@ func (sh *strictHandler) GetBalance(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// WithdrawRequest operation middleware
-func (sh *strictHandler) WithdrawRequest(w http.ResponseWriter, r *http.Request) {
-	var request WithdrawRequestRequestObject
+// WithdrawalRequest operation middleware
+func (sh *strictHandler) WithdrawalRequest(w http.ResponseWriter, r *http.Request) {
+	var request WithdrawalRequestRequestObject
 
-	var body WithdrawRequestJSONRequestBody
+	var body WithdrawalRequestJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
 		return
@@ -771,18 +771,18 @@ func (sh *strictHandler) WithdrawRequest(w http.ResponseWriter, r *http.Request)
 	request.Body = &body
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.WithdrawRequest(ctx, request.(WithdrawRequestRequestObject))
+		return sh.ssi.WithdrawalRequest(ctx, request.(WithdrawalRequestRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "WithdrawRequest")
+		handler = middleware(handler, "WithdrawalRequest")
 	}
 
 	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(WithdrawRequestResponseObject); ok {
-		if err := validResponse.VisitWithdrawRequestResponse(w); err != nil {
+	} else if validResponse, ok := response.(WithdrawalRequestResponseObject); ok {
+		if err := validResponse.VisitWithdrawalRequestResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -935,21 +935,22 @@ func (sh *strictHandler) GetWithdrawals(w http.ResponseWriter, r *http.Request) 
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
+	"AAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

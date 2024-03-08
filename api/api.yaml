@@ -181,13 +181,13 @@ paths:
     post:
       tags:
         - user
-      summary: Withdraw request
-      operationId: withdrawRequest
+      summary: Withdrawal request
+      operationId: withdrawalRequest
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Withdraw'
+              $ref: '#/components/schemas/Withdrawal'
       responses:
         '200':
           description: Successful operation
@@ -229,7 +229,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Withdraw'
+                  $ref: '#/components/schemas/Withdrawal'
         '204':
           description: No withdrawals
         '401':
@@ -275,7 +275,7 @@ components:
         accrual:
           type: number
           format: double
-    Withdraw:
+    Withdrawal:
       type: object
       required:
         - order

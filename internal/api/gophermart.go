@@ -12,7 +12,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
-	"github.com/v-starostin/gophermart/internal/currency"
 
 	"github.com/v-starostin/gophermart/internal/luhn"
 	"github.com/v-starostin/gophermart/internal/model"
@@ -25,7 +24,7 @@ type Service interface {
 	Authenticate(login, password string) (string, error)
 	UploadOrder(userID uuid.UUID, orderNumber string) error
 	GetOrders(userID uuid.UUID) ([]model.Order, error)
-	WithdrawRequest(userID uuid.UUID, orderNumber string, sum float64) error
+	WithdrawalRequest(userID uuid.UUID, orderNumber string, sum float64) error
 	GetBalance(userID uuid.UUID) (float64, float64, error)
 	GetWithdrawals(userID uuid.UUID) ([]model.Withdrawal, error)
 }
@@ -122,7 +121,8 @@ func (g *Gophermart) GetOrders(ctx context.Context, request GetOrdersRequestObje
 
 	getOrders200Response := make(GetOrders200JSONResponse, len(orders))
 	for i, order := range orders {
-		accrual := currency.ConvertToPrimary(order.Accrual)
+		//accrual := currency.ConvertToPrimary(order.Accrual)
+		accrual := order.Accrual
 		getOrders200Response[i] = Order{
 			Number:     order.Number,
 			Status:     order.Status,
@@ -206,40 +206,40 @@ func (g *Gophermart) GetBalance(ctx context.Context, request GetBalanceRequestOb
 	}, nil
 }
 
-func (g *Gophermart) WithdrawRequest(ctx context.Context, request WithdrawRequestRequestObject) (WithdrawRequestResponseObject, error) {
+func (g *Gophermart) WithdrawalRequest(ctx context.Context, request WithdrawalRequestRequestObject) (WithdrawalRequestResponseObject, error) {
 	userID, ok := ctx.Value(keyUserID).(uuid.UUID)
 	if !ok {
 		log.Println("Can not retrieve user ID")
-		return WithdrawRequest500JSONResponse{
+		return WithdrawalRequest500JSONResponse{
 			Code:    http.StatusInternalServerError,
 			Message: "Can not retrieve user ID",
 		}, nil
 	}
 
 	if valid := luhn.IsValid(request.Body.Order); !valid {
-		return WithdrawRequest422JSONResponse{
+		return WithdrawalRequest422JSONResponse{
 			Code:    http.StatusUnprocessableEntity,
 			Message: "Invalid order number",
 		}, nil
 	}
 
-	err := g.service.WithdrawRequest(userID, request.Body.Order, request.Body.Sum)
+	err := g.service.WithdrawalRequest(userID, request.Body.Order, request.Body.Sum)
 	if err != nil {
 		log.Println(err.Error())
 		if errors.Is(err, storage.ErrInsufficientBalance) {
-			return WithdrawRequest402JSONResponse{
+			return WithdrawalRequest402JSONResponse{
 				Code:    http.StatusPaymentRequired,
 				Message: storage.ErrInsufficientBalance.Error(),
 			}, nil
 		}
 
-		return WithdrawRequest500JSONResponse{
+		return WithdrawalRequest500JSONResponse{
 			Code:    http.StatusInternalServerError,
 			Message: "Internal server error",
 		}, nil
 	}
 
-	return WithdrawRequest200Response{}, nil
+	return WithdrawalRequest200Response{}, nil
 }
 
 func (g *Gophermart) GetWithdrawals(ctx context.Context, request GetWithdrawalsRequestObject) (GetWithdrawalsResponseObject, error) {
@@ -268,9 +268,9 @@ func (g *Gophermart) GetWithdrawals(ctx context.Context, request GetWithdrawalsR
 	ws := make(GetWithdrawals200JSONResponse, len(withdrawals))
 	for i, withdrawal := range withdrawals {
 		processedAt := withdrawal.ProcessedAt
-		ws[i] = Withdraw{
+		ws[i] = Withdrawal{
 			Order:       withdrawal.Order,
-			Sum:         currency.ConvertToPrimary(withdrawal.Sum),
+			Sum:         withdrawal.Sum,
 			ProcessedAt: &processedAt,
 		}
 	}

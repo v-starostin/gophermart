@@ -36,8 +36,8 @@ type User struct {
 	Password string `json:"password"`
 }
 
-// Withdraw defines model for Withdraw.
-type Withdraw struct {
+// Withdrawal defines model for Withdrawal.
+type Withdrawal struct {
 	Order       string     `json:"order"`
 	ProcessedAt *time.Time `json:"processed_at,omitempty"`
 	Sum         float64    `json:"sum"`
@@ -46,8 +46,8 @@ type Withdraw struct {
 // UploadOrderTextBody defines parameters for UploadOrder.
 type UploadOrderTextBody = string
 
-// WithdrawRequestJSONRequestBody defines body for WithdrawRequest for application/json ContentType.
-type WithdrawRequestJSONRequestBody = Withdraw
+// WithdrawalRequestJSONRequestBody defines body for WithdrawalRequest for application/json ContentType.
+type WithdrawalRequestJSONRequestBody = Withdrawal
 
 // LoginUserJSONRequestBody defines body for LoginUser for application/json ContentType.
 type LoginUserJSONRequestBody = User

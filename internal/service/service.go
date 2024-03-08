@@ -13,7 +13,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/lestrrat-go/jwx/jwt"
-	"github.com/v-starostin/gophermart/internal/currency"
 
 	"github.com/v-starostin/gophermart/internal/model"
 )
@@ -33,8 +32,8 @@ type Storage interface {
 	AddOrder(userID uuid.UUID, order model.Order) error
 	GetOrder(userID uuid.UUID, orderNumber string) (*model.Order, error)
 	GetOrders(userID uuid.UUID) ([]model.Order, error)
-	WithdrawRequest(userID uuid.UUID, orderNumber string, sum int64) error
-	GetBalance(uuid.UUID) (int64, int64, error)
+	WithdrawalRequest(userID uuid.UUID, orderNumber string, sum float64) error
+	GetBalance(uuid.UUID) (float64, float64, error)
 	GetWithdrawals(userID uuid.UUID) ([]model.Withdrawal, error)
 }
 
@@ -63,20 +62,15 @@ func (a *Auth) GetWithdrawals(userID uuid.UUID) ([]model.Withdrawal, error) {
 }
 
 func (a *Auth) GetBalance(userID uuid.UUID) (float64, float64, error) {
-	balance, withdraw, err := a.storage.GetBalance(userID)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	return currency.ConvertToPrimary(balance), currency.ConvertToPrimary(withdraw), nil
+	return a.storage.GetBalance(userID)
 }
 
 func (a *Auth) GetOrders(userID uuid.UUID) ([]model.Order, error) {
 	return a.storage.GetOrders(userID)
 }
 
-func (a *Auth) WithdrawRequest(userID uuid.UUID, orderNumber string, sum float64) error {
-	return a.storage.WithdrawRequest(userID, orderNumber, currency.ConvertToSubunit(sum))
+func (a *Auth) WithdrawalRequest(userID uuid.UUID, orderNumber string, sum float64) error {
+	return a.storage.WithdrawalRequest(userID, orderNumber, sum)
 }
 
 func (a *Auth) UploadOrder(userID uuid.UUID, orderNumber string) error {
@@ -103,13 +97,13 @@ func (a *Auth) UploadOrder(userID uuid.UUID, orderNumber string) error {
 		return err
 	}
 
-	order = model.Order{
-		Number:  o.Number,
-		Status:  o.Status,
-		Accrual: currency.ConvertToSubunit(o.Accrual),
-	}
+	//order = model.Order{
+	//	Number:  o.Number,
+	//	Status:  o.Status,
+	//	Accrual: o.Accrual,
+	//}
 
-	return a.storage.AddOrder(userID, order)
+	return a.storage.AddOrder(userID, *o)
 }
 
 func (a *Auth) RegisterUser(login, password string) error {
@@ -138,7 +132,7 @@ func (a *Auth) generateAccessToken(id uuid.UUID) (string, error) {
 	return string(signedToken), nil
 }
 
-func (a *Auth) fetchOrder(orderNumber string) (*order, error) {
+func (a *Auth) fetchOrder(orderNumber string) (*model.Order, error) {
 	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf(accrualAPIFormat, a.accrualURL, orderNumber), nil)
 	if err != nil {
 		return nil, err
@@ -165,7 +159,7 @@ func (a *Auth) fetchOrder(orderNumber string) (*order, error) {
 		return nil, err
 	}
 	log.Printf("response: %v\n", string(b))
-	var o order
+	var o model.Order
 	if err := json.Unmarshal(b, &o); err != nil {
 		log.Println("fetchOrder:", err.Error())
 		return nil, err
@@ -174,9 +168,9 @@ func (a *Auth) fetchOrder(orderNumber string) (*order, error) {
 	return &o, nil
 }
 
-type order struct {
-	Number     string    `json:"order"`
-	Status     string    `json:"status"`
-	Accrual    float64   `json:"accrual"`
-	UploadedAt time.Time `json:"uploaded_at"`
-}
+//type order struct {
+//	Number     string    `json:"order"`
+//	Status     string    `json:"status"`
+//	Accrual    float64   `json:"accrual"`
+//	UploadedAt time.Time `json:"uploaded_at"`
+//}

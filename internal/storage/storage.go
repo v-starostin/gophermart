@@ -22,7 +22,7 @@ func New(db *sql.DB) *Storage {
 	return &Storage{db}
 }
 
-func (s *Storage) WithdrawRequest(userID uuid.UUID, orderNumber string, sum int64) error {
+func (s *Storage) WithdrawalRequest(userID uuid.UUID, orderNumber string, sum float64) error {
 	withdrawID, err := uuid.NewRandom()
 	if err != nil {
 		return err
@@ -38,7 +38,7 @@ func (s *Storage) WithdrawRequest(userID uuid.UUID, orderNumber string, sum int6
 		return err
 	}
 
-	var balance int64
+	var balance float64
 	query = "SELECT balance FROM balances WHERE user_id = $1"
 	err = tx.QueryRow(query, userID).Scan(&balance)
 	if err != nil {
@@ -136,13 +136,13 @@ func (s *Storage) GetWithdrawals(userID uuid.UUID) ([]model.Withdrawal, error) {
 	return withdrawals, nil
 }
 
-func (s *Storage) GetBalance(userID uuid.UUID) (int64, int64, error) {
-	var balance int64
+func (s *Storage) GetBalance(userID uuid.UUID) (float64, float64, error) {
+	var balance float64
 	if err := s.db.QueryRow("SELECT balance FROM balances WHERE user_id = $1", userID).Scan(&balance); err != nil {
 		return 0, 0, err
 	}
 
-	var withdrawn int64
+	var withdrawn float64
 	if err := s.db.QueryRow("SELECT sum FROM withdraw_balances WHERE user_id = $1", userID).Scan(&withdrawn); err != nil {
 		return 0, 0, err
 	}
