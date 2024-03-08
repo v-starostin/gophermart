@@ -12,41 +12,41 @@ POST http://localhost:8080/api/user/login
 Content-Type: application/json
 
 {
-  "login": "user2",
-  "password": "password2"
+  "login": "user4",
+  "password": "password4"
 }
 
 ### POST
 POST http://localhost:8080/api/user/orders
 Content-Type: text/plain
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDk4MzEyMzksImlhdCI6MTcwOTgyNTIzOSwic3ViIjoiM2Q1YjFiZTAtMTA0OC00M2U1LWJkMzItN2I3ZjY3YTE0NGUxIn0.eFJI_AvAwhhO7WPvaInCq7nMw6vFw_FxtWuGwK1Zc-o
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDk4ODg3NTUsImlhdCI6MTcwOTg4Mjc1NSwic3ViIjoiNjJiNjNiZTctZTM4OC00Y2MzLTlhZDMtM2Y0M2ZmODI0NGI0In0.ntW_oIr0QjrwUbO5juY7USvACmp7K8DA9RLkMRidxA8
 
-307
+406
 
 ### GET
 GET http://localhost:8080/api/user/orders
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDk4NTAxMzgsImlhdCI6MTcwOTg0NDEzOCwic3ViIjoiNjJiNjNiZTctZTM4OC00Y2MzLTlhZDMtM2Y0M2ZmODI0NGI0In0.BYjbQCC1QKc2WJOeBuEEsMwDrp4vmhFTO_zfSyQ-Bms
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDk4ODg3NTUsImlhdCI6MTcwOTg4Mjc1NSwic3ViIjoiNjJiNjNiZTctZTM4OC00Y2MzLTlhZDMtM2Y0M2ZmODI0NGI0In0.ntW_oIr0QjrwUbO5juY7USvACmp7K8DA9RLkMRidxA8
 
 ### GET
 GET http://localhost:8080/api/user/balance
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDk4MzEyMzksImlhdCI6MTcwOTgyNTIzOSwic3ViIjoiM2Q1YjFiZTAtMTA0OC00M2U1LWJkMzItN2I3ZjY3YTE0NGUxIn0.eFJI_AvAwhhO7WPvaInCq7nMw6vFw_FxtWuGwK1Zc-o
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDk4ODg3NTUsImlhdCI6MTcwOTg4Mjc1NSwic3ViIjoiNjJiNjNiZTctZTM4OC00Y2MzLTlhZDMtM2Y0M2ZmODI0NGI0In0.ntW_oIr0QjrwUbO5juY7USvACmp7K8DA9RLkMRidxA8
 
 ### GET
 GET http://localhost:8080/api/user/withdrawals
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDk4MzEyMzksImlhdCI6MTcwOTgyNTIzOSwic3ViIjoiM2Q1YjFiZTAtMTA0OC00M2U1LWJkMzItN2I3ZjY3YTE0NGUxIn0.eFJI_AvAwhhO7WPvaInCq7nMw6vFw_FxtWuGwK1Zc-o
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDk4ODg3NTUsImlhdCI6MTcwOTg4Mjc1NSwic3ViIjoiNjJiNjNiZTctZTM4OC00Y2MzLTlhZDMtM2Y0M2ZmODI0NGI0In0.ntW_oIr0QjrwUbO5juY7USvACmp7K8DA9RLkMRidxA8
 
 ### POST
 POST http://localhost:8080/api/user/balance/withdraw
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDk4MzEyMzksImlhdCI6MTcwOTgyNTIzOSwic3ViIjoiM2Q1YjFiZTAtMTA0OC00M2U1LWJkMzItN2I3ZjY3YTE0NGUxIn0.eFJI_AvAwhhO7WPvaInCq7nMw6vFw_FxtWuGwK1Zc-o
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDk4ODg3NTUsImlhdCI6MTcwOTg4Mjc1NSwic3ViIjoiNjJiNjNiZTctZTM4OC00Y2MzLTlhZDMtM2Y0M2ZmODI0NGI0In0.ntW_oIr0QjrwUbO5juY7USvACmp7K8DA9RLkMRidxA8
 
 {
-  "order": "3004",
-  "sum": 1
+  "order": "7005",
+  "sum": 3.5
 }
 
 ### GET
-GET http://localhost:8081/api/orders/307
+GET http://localhost:8081/api/orders/406
 
 
 ### POST
@@ -54,11 +54,11 @@ POST http://localhost:8081/api/orders
 Content-Type: application/json
 
 {
-  "order": "307",
+  "order": "406",
   "goods": [
     {
       "description": "Стиральная машинка LG",
-      "price": 10
+      "price": 123.25
     }
   ]
 }

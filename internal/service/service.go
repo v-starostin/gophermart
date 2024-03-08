@@ -75,23 +75,30 @@ func (a *Auth) GetOrders(userID uuid.UUID) ([]model.Order, error) {
 }
 
 func (a *Auth) WithdrawRequest(userID uuid.UUID, orderNumber string, sum float64) error {
-	return a.storage.WithdrawRequest(userID, orderNumber, int(sum))
+	return a.storage.WithdrawRequest(userID, orderNumber, currency.ConvertToSubunit(sum))
 }
 
 func (a *Auth) UploadOrder(userID uuid.UUID, orderNumber string) error {
-	order, err := a.storage.GetOrder(userID, orderNumber)
+	_, err := a.storage.GetOrder(userID, orderNumber)
+	if err == nil {
+		return ErrOrderAlreadyExists
+	}
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return err
 	}
-	if order != nil {
-		return ErrOrderAlreadyExists
-	}
 
-	order, err = a.fetchOrder(orderNumber)
+	o, err := a.fetchOrder(orderNumber)
 	if err != nil {
 		return err
 	}
-	return a.storage.AddOrder(userID, *order)
+
+	order := model.Order{
+		Number:  o.Number,
+		Status:  o.Status,
+		Accrual: currency.ConvertToSubunit(o.Accrual),
+	}
+
+	return a.storage.AddOrder(userID, order)
 }
 
 func (a *Auth) RegisterUser(login, password string) error {
@@ -120,7 +127,7 @@ func (a *Auth) generateAccessToken(id uuid.UUID) (string, error) {
 	return string(signedToken), nil
 }
 
-func (a *Auth) fetchOrder(orderNumber string) (*model.Order, error) {
+func (a *Auth) fetchOrder(orderNumber string) (*order, error) {
 	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf(accrualAPIFormat, a.accrualURL, orderNumber), nil)
 	if err != nil {
 		return nil, err
@@ -135,9 +142,16 @@ func (a *Auth) fetchOrder(orderNumber string) (*model.Order, error) {
 	if err != nil {
 		return nil, err
 	}
-	var order model.Order
-	if err := json.Unmarshal(b, &order); err != nil {
+	var o order
+	if err := json.Unmarshal(b, &o); err != nil {
 		return nil, err
 	}
-	return &order, nil
+	return &o, nil
+}
+
+type order struct {
+	Number     string    `json:"order"`
+	Status     string    `json:"status"`
+	Accrual    float64   `json:"accrual"`
+	UploadedAt time.Time `json:"uploaded_at"`
 }
