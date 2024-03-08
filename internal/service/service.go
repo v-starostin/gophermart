@@ -94,7 +94,6 @@ func (a *Auth) UploadOrder(userID uuid.UUID, orderNumber string) error {
 		if errors.Is(err, errNoContent) {
 			order = model.Order{
 				Number: orderNumber,
-				Status: "UNREGISTERED",
 			}
 
 			return a.storage.AddOrder(userID, order)
