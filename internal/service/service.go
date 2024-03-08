@@ -142,6 +142,7 @@ func (a *Auth) fetchOrder(orderNumber string) (*order, error) {
 	if err != nil {
 		return nil, err
 	}
+	log.Printf("response: %v\n", string(b))
 	var o order
 	if err := json.Unmarshal(b, &o); err != nil {
 		log.Println("fetchOrder:", err.Error())
