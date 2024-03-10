@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"errors"
-	"log"
 
 	"github.com/google/uuid"
 
@@ -111,7 +110,6 @@ func (s *Storage) GetWithdrawals(userID uuid.UUID) ([]model.Withdrawal, error) {
 	query := "SELECT order_number, sum, processed_at FROM withdrawals WHERE user_id = $1 AND status = $2"
 	raws, err := s.db.Query(query, userID, "SUCCESS")
 	if err != nil {
-		log.Println("GetWithdrawals1 error:", err.Error())
 		return nil, err
 	}
 	defer raws.Close()
@@ -121,7 +119,6 @@ func (s *Storage) GetWithdrawals(userID uuid.UUID) ([]model.Withdrawal, error) {
 	for raws.Next() {
 		err = raws.Scan(&w.Order, &w.Sum, &w.ProcessedAt)
 		if err != nil {
-			log.Println("GetWithdrawals2 error:", err.Error())
 			return nil, err
 		}
 		withdrawals = append(withdrawals, w)
@@ -129,7 +126,6 @@ func (s *Storage) GetWithdrawals(userID uuid.UUID) ([]model.Withdrawal, error) {
 
 	err = raws.Err()
 	if err != nil {
-		log.Println("GetWithdrawals3 error:", err.Error())
 		return nil, err
 	}
 
@@ -166,7 +162,6 @@ func (s *Storage) GetOrders(userID uuid.UUID) ([]model.Order, error) {
 	query := "SELECT order_number, status, accrual, uploaded_at FROM orders WHERE user_id = $1"
 	raws, err := s.db.Query(query, userID)
 	if err != nil {
-		log.Println("GetOrders1 error:", err.Error())
 		return nil, err
 	}
 	defer raws.Close()
@@ -176,7 +171,6 @@ func (s *Storage) GetOrders(userID uuid.UUID) ([]model.Order, error) {
 	for raws.Next() {
 		err = raws.Scan(&o.Number, &o.Status, &o.Accrual, &o.UploadedAt)
 		if err != nil {
-			log.Println("GetOrders2 error:", err.Error())
 			return nil, err
 		}
 		orders = append(orders, o)
@@ -184,7 +178,6 @@ func (s *Storage) GetOrders(userID uuid.UUID) ([]model.Order, error) {
 
 	err = raws.Err()
 	if err != nil {
-		log.Println("GetOrders3 error:", err.Error())
 		return nil, err
 	}
 
@@ -193,7 +186,6 @@ func (s *Storage) GetOrders(userID uuid.UUID) ([]model.Order, error) {
 
 func (s *Storage) AddUser(login, password string) error {
 	userID, err := uuid.NewRandom()
-	log.Println("id of registered user:", userID)
 	if err != nil {
 		return err
 	}

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"time"
 
@@ -97,12 +96,6 @@ func (a *Auth) UploadOrder(userID uuid.UUID, orderNumber string) error {
 		return err
 	}
 
-	//order = model.Order{
-	//	Number:  o.Number,
-	//	Status:  o.Status,
-	//	Accrual: o.Accrual,
-	//}
-
 	return a.storage.AddOrder(userID, *o)
 }
 
@@ -148,29 +141,17 @@ func (a *Auth) fetchOrder(orderNumber string) (*model.Order, error) {
 		if res.StatusCode == http.StatusNoContent {
 			return nil, errNoContent
 		}
-		log.Println("response status1:", res.Status)
 		return nil, fmt.Errorf("failed to fetch order info, status code %d", res.StatusCode)
 	}
-
-	log.Println("response2 status:", res.Status)
 
 	b, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("response: %v\n", string(b))
 	var o model.Order
 	if err := json.Unmarshal(b, &o); err != nil {
-		log.Println("fetchOrder:", err.Error())
 		return nil, err
 	}
 
 	return &o, nil
 }
-
-//type order struct {
-//	Number     string    `json:"order"`
-//	Status     string    `json:"status"`
-//	Accrual    float64   `json:"accrual"`
-//	UploadedAt time.Time `json:"uploaded_at"`
-//}

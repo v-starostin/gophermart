@@ -7,7 +7,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"log"
+	"log/slog"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -30,20 +30,25 @@ type Service interface {
 }
 
 type Gophermart struct {
-	//logger slog.Logger
+	logger  *slog.Logger
 	service Service
 	secret  []byte
 }
 
 var _ StrictServerInterface = (*Gophermart)(nil)
 
-func NewGophermart(service Service, secret []byte) *Gophermart {
-	return &Gophermart{service, secret}
+func NewGophermart(logger *slog.Logger, service Service, secret []byte) *Gophermart {
+	return &Gophermart{
+		logger:  logger,
+		service: service,
+		secret:  secret,
+	}
 }
 
 func (g *Gophermart) RegisterUser(ctx context.Context, request RegisterUserRequestObject) (RegisterUserResponseObject, error) {
 	err := g.service.RegisterUser(request.Body.Login, request.Body.Password)
 	if err != nil {
+		g.logger.Info("Register user error", slog.String("error", err.Error()))
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
 			if pqErr.Code.Name() == "23505" {
@@ -62,6 +67,7 @@ func (g *Gophermart) RegisterUser(ctx context.Context, request RegisterUserReque
 
 	token, err := g.service.Authenticate(request.Body.Login, request.Body.Password)
 	if err != nil {
+		g.logger.Info("Authentication error", slog.String("error", err.Error()))
 		return RegisterUser500JSONResponse{
 			Code:    http.StatusInternalServerError,
 			Message: "Internal server error",
@@ -78,6 +84,7 @@ func (g *Gophermart) RegisterUser(ctx context.Context, request RegisterUserReque
 func (g *Gophermart) LoginUser(ctx context.Context, request LoginUserRequestObject) (LoginUserResponseObject, error) {
 	token, err := g.service.Authenticate(request.Body.Login, request.Body.Password)
 	if err != nil {
+		g.logger.Info("Authentication error", slog.String("error", err.Error()))
 		if errors.Is(err, sql.ErrNoRows) {
 			return LoginUser401JSONResponse{
 				Code:    http.StatusUnauthorized,
@@ -103,12 +110,13 @@ func (g *Gophermart) GetOrders(ctx context.Context, request GetOrdersRequestObje
 	if !ok {
 		return GetOrders500JSONResponse{
 			Code:    http.StatusInternalServerError,
-			Message: "Failed to retrieve user ID",
+			Message: "Can not retrieve user ID",
 		}, nil
 	}
 
 	orders, err := g.service.GetOrders(userID)
 	if err != nil {
+		g.logger.Info("Get orders error", slog.String("error", err.Error()))
 		if errors.Is(err, sql.ErrNoRows) {
 			return GetOrders204Response{}, nil
 		}
@@ -121,7 +129,6 @@ func (g *Gophermart) GetOrders(ctx context.Context, request GetOrdersRequestObje
 
 	getOrders200Response := make(GetOrders200JSONResponse, len(orders))
 	for i, order := range orders {
-		//accrual := currency.ConvertToPrimary(order.Accrual)
 		accrual := order.Accrual
 		getOrders200Response[i] = Order{
 			Number:     order.Number,
@@ -137,7 +144,6 @@ func (g *Gophermart) GetOrders(ctx context.Context, request GetOrdersRequestObje
 func (g *Gophermart) UploadOrder(ctx context.Context, request UploadOrderRequestObject) (UploadOrderResponseObject, error) {
 	userID, ok := ctx.Value(keyUserID).(uuid.UUID)
 	if !ok {
-		log.Println("Can not retrieve user ID")
 		return UploadOrder500JSONResponse{
 			Code:    http.StatusInternalServerError,
 			Message: "Can not retrieve user ID",
@@ -145,7 +151,6 @@ func (g *Gophermart) UploadOrder(ctx context.Context, request UploadOrderRequest
 	}
 
 	if valid := luhn.IsValid(*request.Body); !valid {
-		log.Println("Order number is not valid")
 		return UploadOrder422JSONResponse{
 			Code:    http.StatusUnprocessableEntity,
 			Message: "Invalid order number",
@@ -153,7 +158,7 @@ func (g *Gophermart) UploadOrder(ctx context.Context, request UploadOrderRequest
 	}
 
 	if err := g.service.UploadOrder(userID, *request.Body); err != nil {
-		log.Println(err.Error())
+		g.logger.Info("Upload order error", slog.String("error", err.Error()))
 		var pgErr *pq.Error
 		if errors.As(err, &pgErr) {
 			if pgErr.Code.Name() == "unique_violation" {
@@ -180,7 +185,6 @@ func (g *Gophermart) UploadOrder(ctx context.Context, request UploadOrderRequest
 func (g *Gophermart) GetBalance(ctx context.Context, request GetBalanceRequestObject) (GetBalanceResponseObject, error) {
 	userID, ok := ctx.Value(keyUserID).(uuid.UUID)
 	if !ok {
-		log.Println("Can not retrieve user ID")
 		return GetBalance500JSONResponse{
 			Code:    http.StatusInternalServerError,
 			Message: "Can not retrieve user ID",
@@ -189,7 +193,7 @@ func (g *Gophermart) GetBalance(ctx context.Context, request GetBalanceRequestOb
 
 	balance, withdrawn, err := g.service.GetBalance(userID)
 	if err != nil {
-		log.Println(err.Error())
+		g.logger.Info("Get balance error", slog.String("error", err.Error()))
 		if errors.Is(err, sql.ErrNoRows) {
 			return GetBalance200JSONResponse{}, nil
 		}
@@ -209,7 +213,6 @@ func (g *Gophermart) GetBalance(ctx context.Context, request GetBalanceRequestOb
 func (g *Gophermart) WithdrawalRequest(ctx context.Context, request WithdrawalRequestRequestObject) (WithdrawalRequestResponseObject, error) {
 	userID, ok := ctx.Value(keyUserID).(uuid.UUID)
 	if !ok {
-		log.Println("Can not retrieve user ID")
 		return WithdrawalRequest500JSONResponse{
 			Code:    http.StatusInternalServerError,
 			Message: "Can not retrieve user ID",
@@ -225,7 +228,7 @@ func (g *Gophermart) WithdrawalRequest(ctx context.Context, request WithdrawalRe
 
 	err := g.service.WithdrawalRequest(userID, request.Body.Order, request.Body.Sum)
 	if err != nil {
-		log.Println(err.Error())
+		g.logger.Info("Withdrawal request error", slog.String("error", err.Error()))
 		if errors.Is(err, storage.ErrInsufficientBalance) {
 			return WithdrawalRequest402JSONResponse{
 				Code:    http.StatusPaymentRequired,
@@ -245,7 +248,6 @@ func (g *Gophermart) WithdrawalRequest(ctx context.Context, request WithdrawalRe
 func (g *Gophermart) GetWithdrawals(ctx context.Context, request GetWithdrawalsRequestObject) (GetWithdrawalsResponseObject, error) {
 	userID, ok := ctx.Value(keyUserID).(uuid.UUID)
 	if !ok {
-		log.Println("Can not retrieve user ID")
 		return GetWithdrawals500JSONResponse{
 			Code:    http.StatusBadRequest,
 			Message: "Can not retrieve user ID",
@@ -254,7 +256,7 @@ func (g *Gophermart) GetWithdrawals(ctx context.Context, request GetWithdrawalsR
 
 	withdrawals, err := g.service.GetWithdrawals(userID)
 	if err != nil {
-		log.Println(err.Error())
+		g.logger.Info("Get withdrawals error", slog.String("error", err.Error()))
 		if errors.Is(err, sql.ErrNoRows) {
 			return GetWithdrawals204Response{}, nil
 		}

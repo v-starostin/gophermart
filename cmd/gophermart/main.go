@@ -3,8 +3,9 @@ package main
 import (
 	"database/sql"
 	"errors"
-	"log"
+	"log/slog"
 	"net/http"
+	"os"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/golang-migrate/migrate/v4"
@@ -20,44 +21,47 @@ import (
 )
 
 func main() {
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
 	cfg, err := config.New()
 	if err != nil {
-		log.Println("configuration err", err)
+		logger.Info("Configuration error", slog.String("error", err.Error()))
 		return
 	}
 
 	db, err := sql.Open("postgres", cfg.DatabaseURI)
 	if err != nil {
-		log.Println("database connection err", err)
+		logger.Info("DB connection error", slog.String("error", err.Error()))
 		return
 	}
 	defer db.Close()
 
-	if err := db.Ping(); err != nil {
-		log.Println("db ping err", err)
+	err = db.Ping()
+	if err != nil {
+		logger.Info("DB ping error", slog.String("error", err.Error()))
 		return
 	}
 
 	instance, err := postgres.WithInstance(db, &postgres.Config{})
 	if err != nil {
-		log.Println(err)
+		logger.Info("DB migration 'WithInstance' error", slog.String("error", err.Error()))
 		return
 	}
 
 	m, err := migrate.NewWithDatabaseInstance("file://db/migrations", "postgres", instance)
 	if err != nil {
-		log.Println(err)
+		logger.Info("DB migration 'NewWithDatabaseInstance' error", slog.String("error", err.Error()))
 		return
 	}
 
 	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
-		log.Println(err)
+		logger.Info("DB migration 'Up' error", slog.String("error", err.Error()))
 		return
 	}
 
 	swagger, err := api.GetSwagger()
 	if err != nil {
-		log.Println(err)
+		logger.Info("'GetSwagger' error", slog.String("error", err.Error()))
 		return
 	}
 
@@ -65,7 +69,7 @@ func main() {
 
 	repo := storage.New(db)
 	srv := service.New(repo, []byte(cfg.Secret), cfg.AccrualAddress)
-	gophermart := api.NewGophermart(srv, []byte(cfg.Secret))
+	gophermart := api.NewGophermart(logger, srv, []byte(cfg.Secret))
 	strictHandler := api.NewStrictHandler(gophermart, nil)
 
 	r := chi.NewRouter()
@@ -79,9 +83,9 @@ func main() {
 		Handler: h,
 	}
 
-	log.Println("Server is listening on", cfg.Address)
+	logger.Info("Server is listening on", cfg.Address)
 	if err := server.ListenAndServe(); err != nil || !errors.Is(err, http.ErrServerClosed) {
-		log.Println(err)
+		logger.Info("Starting server error", slog.String("error", err.Error()))
 		return
 	}
 }
