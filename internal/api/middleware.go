@@ -15,7 +15,7 @@ import (
 
 type contextKey string
 
-const keyUserID contextKey = "userID"
+const KeyUserID contextKey = "userID"
 
 func Authenticate(secret []byte) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -51,7 +51,7 @@ func Authenticate(secret []byte) func(http.Handler) http.Handler {
 				}
 			}
 
-			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), keyUserID, userID)))
+			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), KeyUserID, userID)))
 		})
 	}
 }
