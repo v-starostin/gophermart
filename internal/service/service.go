@@ -21,7 +21,7 @@ const (
 )
 
 var (
-	errNoContent          = errors.New("no content")
+	ErrNoContent          = errors.New("no content")
 	ErrOrderAlreadyExists = errors.New("order already exists for current user")
 )
 
@@ -40,40 +40,40 @@ type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-type Auth struct {
+type Service struct {
 	storage    Storage
 	client     HTTPClient
 	secret     []byte
 	accrualURL string
 }
 
-func New(storage Storage, secret []byte, url string) *Auth {
-	return &Auth{
+func New(storage Storage, client HTTPClient, secret []byte, url string) *Service {
+	return &Service{
 		storage:    storage,
 		secret:     secret,
 		accrualURL: url,
-		client:     &http.Client{},
+		client:     client,
 	}
 }
 
-func (a *Auth) GetWithdrawals(userID uuid.UUID) ([]model.Withdrawal, error) {
-	return a.storage.GetWithdrawals(userID)
+func (s *Service) GetWithdrawals(userID uuid.UUID) ([]model.Withdrawal, error) {
+	return s.storage.GetWithdrawals(userID)
 }
 
-func (a *Auth) GetBalance(userID uuid.UUID) (float64, float64, error) {
-	return a.storage.GetBalance(userID)
+func (s *Service) GetBalance(userID uuid.UUID) (float64, float64, error) {
+	return s.storage.GetBalance(userID)
 }
 
-func (a *Auth) GetOrders(userID uuid.UUID) ([]model.Order, error) {
-	return a.storage.GetOrders(userID)
+func (s *Service) GetOrders(userID uuid.UUID) ([]model.Order, error) {
+	return s.storage.GetOrders(userID)
 }
 
-func (a *Auth) WithdrawalRequest(userID uuid.UUID, orderNumber string, sum float64) error {
-	return a.storage.WithdrawalRequest(userID, orderNumber, sum)
+func (s *Service) WithdrawalRequest(userID uuid.UUID, orderNumber string, sum float64) error {
+	return s.storage.WithdrawalRequest(userID, orderNumber, sum)
 }
 
-func (a *Auth) UploadOrder(userID uuid.UUID, orderNumber string) error {
-	_, err := a.storage.GetOrder(userID, orderNumber)
+func (s *Service) UploadOrder(userID uuid.UUID, orderNumber string) error {
+	_, err := s.storage.GetOrder(userID, orderNumber)
 	if err == nil {
 		return ErrOrderAlreadyExists
 	}
@@ -82,56 +82,56 @@ func (a *Auth) UploadOrder(userID uuid.UUID, orderNumber string) error {
 	}
 
 	var order model.Order
-	o, err := a.fetchOrder(orderNumber)
+	o, err := s.fetchOrder(orderNumber)
 	if err != nil {
-		if errors.Is(err, errNoContent) {
+		if errors.Is(err, ErrNoContent) {
 			order = model.Order{
 				Number: orderNumber,
 				Status: "NEW",
 			}
 
-			return a.storage.AddOrder(userID, order)
+			return s.storage.AddOrder(userID, order)
 		}
 
 		return err
 	}
 
-	return a.storage.AddOrder(userID, *o)
+	return s.storage.AddOrder(userID, *o)
 }
 
-func (a *Auth) RegisterUser(login, password string) error {
-	return a.storage.AddUser(login, password)
+func (s *Service) RegisterUser(login, password string) error {
+	return s.storage.AddUser(login, password)
 }
 
-func (a *Auth) Authenticate(login, password string) (string, error) {
-	user, err := a.storage.GetUser(login, password)
+func (s *Service) Authenticate(login, password string) (string, error) {
+	user, err := s.storage.GetUser(login, password)
 	if err != nil {
 		return "", err
 	}
 
-	return a.generateAccessToken(user.ID)
+	return s.generateAccessToken(user.ID)
 }
 
-func (a *Auth) generateAccessToken(id uuid.UUID) (string, error) {
+func (s *Service) generateAccessToken(id uuid.UUID) (string, error) {
 	token := jwt.New()
 	now := time.Now()
 	token.Set(jwt.SubjectKey, id.String())
 	token.Set(jwt.IssuedAtKey, now.Unix())
-	token.Set(jwt.ExpirationKey, now.Add(100*time.Minute))
-	signedToken, err := jwt.Sign(token, jwa.HS256, a.secret)
+	token.Set(jwt.ExpirationKey, now.Add(10*time.Minute))
+	signedToken, err := jwt.Sign(token, jwa.HS256, s.secret)
 	if err != nil {
 		return "", err
 	}
 	return string(signedToken), nil
 }
 
-func (a *Auth) fetchOrder(orderNumber string) (*model.Order, error) {
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf(accrualAPIFormat, a.accrualURL, orderNumber), nil)
+func (s *Service) fetchOrder(orderNumber string) (*model.Order, error) {
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf(accrualAPIFormat, s.accrualURL, orderNumber), nil)
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := a.client.Do(req)
+	res, err := s.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func (a *Auth) fetchOrder(orderNumber string) (*model.Order, error) {
 
 	if res.StatusCode != http.StatusOK {
 		if res.StatusCode == http.StatusNoContent {
-			return nil, errNoContent
+			return nil, ErrNoContent
 		}
 		return nil, fmt.Errorf("failed to fetch order info, status code %d", res.StatusCode)
 	}

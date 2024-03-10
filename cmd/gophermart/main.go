@@ -67,8 +67,9 @@ func main() {
 
 	swagger.Servers = nil
 
+	client := &http.Client{}
 	repo := storage.New(db)
-	srv := service.New(repo, []byte(cfg.Secret), cfg.AccrualAddress)
+	srv := service.New(repo, client, []byte(cfg.Secret), cfg.AccrualAddress)
 	gophermart := api.NewGophermart(logger, srv, []byte(cfg.Secret))
 	strictHandler := api.NewStrictHandler(gophermart, nil)
 
@@ -83,7 +84,7 @@ func main() {
 		Handler: h,
 	}
 
-	logger.Info("Server is listening on", cfg.Address)
+	logger.Info("Server is listening on", slog.String("address", cfg.Address))
 	if err := server.ListenAndServe(); err != nil || !errors.Is(err, http.ErrServerClosed) {
 		logger.Info("Starting server error", slog.String("error", err.Error()))
 		return
