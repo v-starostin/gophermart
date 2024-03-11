@@ -29,6 +29,17 @@ import (
 	"github.com/v-starostin/gophermart/internal/storage"
 )
 
+const (
+	baseURL        = "http://localhost:8080"
+	withdrawalReq  = baseURL + "/api/user/balance/withdraw"
+	uploadOrder    = baseURL + "/api/user/orders"
+	getOrders      = baseURL + "/api/user/orders"
+	getWithdrawals = baseURL + "/api/user/withdrawals"
+	getBalance     = baseURL + "/api/user/balance"
+	loginUser      = baseURL + "/api/user/login"
+	registerUser   = baseURL + "/api/user/register"
+)
+
 type apiTestSuite struct {
 	suite.Suite
 	r       *chi.Mux
@@ -55,23 +66,22 @@ func TestHandler(t *testing.T) {
 }
 
 func (suite *apiTestSuite) TestRegisterUser() {
-	user := api.RegisterUserJSONRequestBody{
+	u := api.RegisterUserJSONRequestBody{
 		Login:    "login",
 		Password: "password",
 	}
-
-	b, err := json.Marshal(user)
+	b, err := json.Marshal(u)
 	suite.NoError(err)
 
 	suite.Run("Register user", func() {
-		req, err := http.NewRequest(http.MethodPost, "http://localhost:8080/api/user/register", bytes.NewReader(b))
+		req, err := http.NewRequest(http.MethodPost, registerUser, bytes.NewReader(b))
 		suite.NoError(err)
 		req.Header.Add("Content-Type", "application/json")
 
 		rr := httptest.NewRecorder()
 
-		suite.service.On("RegisterUser", "login", "password").Once().Return(nil)
-		suite.service.On("Authenticate", "login", "password").Once().Return("token", nil)
+		suite.service.On("RegisterUser", u.Login, u.Password).Once().Return(nil)
+		suite.service.On("Authenticate", u.Login, u.Password).Once().Return("token", nil)
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
 
@@ -79,7 +89,7 @@ func (suite *apiTestSuite) TestRegisterUser() {
 	})
 
 	suite.Run("User already exists", func() {
-		req, err := http.NewRequest(http.MethodPost, "http://localhost:8080/api/user/register", bytes.NewReader(b))
+		req, err := http.NewRequest(http.MethodPost, registerUser, bytes.NewReader(b))
 		suite.NoError(err)
 		req.Header.Add("Content-Type", "application/json")
 
@@ -88,7 +98,8 @@ func (suite *apiTestSuite) TestRegisterUser() {
 		pqErr := &pq.Error{
 			Code: pq.ErrorCode("23505"),
 		}
-		suite.service.On("RegisterUser", "login", "password").Once().Return(pqErr)
+
+		suite.service.On("RegisterUser", u.Login, u.Password).Once().Return(pqErr)
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
 		defer res.Body.Close()
@@ -96,7 +107,7 @@ func (suite *apiTestSuite) TestRegisterUser() {
 		suite.NoError(err)
 
 		expected := api.RegisterUser409JSONResponse{
-			Code:    409,
+			Code:    http.StatusConflict,
 			Message: "User already exists",
 		}
 
@@ -108,13 +119,13 @@ func (suite *apiTestSuite) TestRegisterUser() {
 	})
 
 	suite.Run("Internal server error (Register user)", func() {
-		req, err := http.NewRequest(http.MethodPost, "http://localhost:8080/api/user/register", bytes.NewReader(b))
+		req, err := http.NewRequest(http.MethodPost, registerUser, bytes.NewReader(b))
 		suite.NoError(err)
 		req.Header.Add("Content-Type", "application/json")
 
 		rr := httptest.NewRecorder()
 
-		suite.service.On("RegisterUser", "login", "password").Once().Return(errors.New("RegisterUser err"))
+		suite.service.On("RegisterUser", u.Login, u.Password).Once().Return(errors.New("RegisterUser err"))
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
 		defer res.Body.Close()
@@ -122,7 +133,7 @@ func (suite *apiTestSuite) TestRegisterUser() {
 		suite.NoError(err)
 
 		expected := api.RegisterUser500JSONResponse{
-			Code:    500,
+			Code:    http.StatusInternalServerError,
 			Message: "Internal server error",
 		}
 
@@ -134,14 +145,14 @@ func (suite *apiTestSuite) TestRegisterUser() {
 	})
 
 	suite.Run("Internal server error (Authenticate user)", func() {
-		req, err := http.NewRequest(http.MethodPost, "http://localhost:8080/api/user/register", bytes.NewReader(b))
+		req, err := http.NewRequest(http.MethodPost, registerUser, bytes.NewReader(b))
 		suite.NoError(err)
 		req.Header.Add("Content-Type", "application/json")
 
 		rr := httptest.NewRecorder()
 
-		suite.service.On("RegisterUser", "login", "password").Once().Return(nil)
-		suite.service.On("Authenticate", "login", "password").Once().Return("", errors.New("Authenticate err"))
+		suite.service.On("RegisterUser", u.Login, u.Password).Once().Return(nil)
+		suite.service.On("Authenticate", u.Login, u.Password).Once().Return("", errors.New("Authenticate err"))
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
 		defer res.Body.Close()
@@ -149,7 +160,7 @@ func (suite *apiTestSuite) TestRegisterUser() {
 		suite.NoError(err)
 
 		expected := api.RegisterUser500JSONResponse{
-			Code:    500,
+			Code:    http.StatusInternalServerError,
 			Message: "Internal server error",
 		}
 
@@ -159,26 +170,24 @@ func (suite *apiTestSuite) TestRegisterUser() {
 
 		suite.Equal(expected, got)
 	})
-
 }
 
 func (suite *apiTestSuite) TestLoginUser() {
-	user := api.LoginUserJSONRequestBody{
+	u := api.LoginUserJSONRequestBody{
 		Login:    "login",
 		Password: "password",
 	}
-
-	b, err := json.Marshal(user)
+	b, err := json.Marshal(u)
 	suite.NoError(err)
 
 	suite.Run("Login user", func() {
-		req, err := http.NewRequest(http.MethodPost, "http://localhost:8080/api/user/login", bytes.NewReader(b))
+		req, err := http.NewRequest(http.MethodPost, loginUser, bytes.NewReader(b))
 		suite.NoError(err)
 		req.Header.Add("Content-Type", "application/json")
 
 		rr := httptest.NewRecorder()
 
-		suite.service.On("Authenticate", "login", "password").Once().Return("token", nil)
+		suite.service.On("Authenticate", u.Login, u.Password).Once().Return("token", nil)
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
 
@@ -186,13 +195,13 @@ func (suite *apiTestSuite) TestLoginUser() {
 	})
 
 	suite.Run("User unauthorized", func() {
-		req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, "http://localhost:8080/api/user/login", bytes.NewReader(b))
+		req, err := http.NewRequest(http.MethodPost, loginUser, bytes.NewReader(b))
 		suite.NoError(err)
 		req.Header.Add("Content-Type", "application/json")
 
 		rr := httptest.NewRecorder()
 
-		suite.service.On("Authenticate", "login", "password").Once().Return("", sql.ErrNoRows)
+		suite.service.On("Authenticate", u.Login, u.Password).Once().Return("", sql.ErrNoRows)
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
 		defer res.Body.Close()
@@ -200,7 +209,7 @@ func (suite *apiTestSuite) TestLoginUser() {
 		suite.NoError(err)
 
 		expected := api.LoginUser401JSONResponse{
-			Code:    401,
+			Code:    http.StatusUnauthorized,
 			Message: "Unauthorized",
 		}
 
@@ -212,13 +221,13 @@ func (suite *apiTestSuite) TestLoginUser() {
 	})
 
 	suite.Run("Internal server error", func() {
-		req, err := http.NewRequest(http.MethodPost, "http://localhost:8080/api/user/login", bytes.NewReader(b))
+		req, err := http.NewRequest(http.MethodPost, loginUser, bytes.NewReader(b))
 		suite.NoError(err)
 		req.Header.Add("Content-Type", "application/json")
 
 		rr := httptest.NewRecorder()
 
-		suite.service.On("Authenticate", "login", "password").Once().Return("", errors.New("Authenticate err"))
+		suite.service.On("Authenticate", u.Login, u.Password).Once().Return("", errors.New("Authenticate err"))
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
 		defer res.Body.Close()
@@ -226,7 +235,7 @@ func (suite *apiTestSuite) TestLoginUser() {
 		suite.NoError(err)
 
 		expected := api.LoginUser500JSONResponse{
-			Code:    500,
+			Code:    http.StatusInternalServerError,
 			Message: "Internal server error",
 		}
 
@@ -236,16 +245,15 @@ func (suite *apiTestSuite) TestLoginUser() {
 
 		suite.Equal(expected, got)
 	})
-
 }
 
 func (suite *apiTestSuite) TestGetBalance() {
 	userID, err := uuid.NewRandom()
 	suite.NoError(err)
+	ctx := context.WithValue(context.Background(), api.KeyUserID, userID)
 
 	suite.Run("Get balance", func() {
-		ctx := context.WithValue(context.Background(), api.KeyUserID, userID)
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://localhost:8080/api/user/balance", nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, getBalance, nil)
 		suite.NoError(err)
 
 		rr := httptest.NewRecorder()
@@ -282,7 +290,7 @@ func (suite *apiTestSuite) TestGetBalance() {
 		suite.NoError(err)
 
 		expected := api.GetBalance500JSONResponse{
-			Code:    500,
+			Code:    http.StatusInternalServerError,
 			Message: "Can not retrieve user ID",
 		}
 
@@ -294,8 +302,7 @@ func (suite *apiTestSuite) TestGetBalance() {
 	})
 
 	suite.Run("No balance for current user", func() {
-		ctx := context.WithValue(context.Background(), api.KeyUserID, userID)
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://localhost:8080/api/user/balance", nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, getBalance, nil)
 		suite.NoError(err)
 
 		rr := httptest.NewRecorder()
@@ -320,8 +327,7 @@ func (suite *apiTestSuite) TestGetBalance() {
 	})
 
 	suite.Run("Internal server error", func() {
-		ctx := context.WithValue(context.Background(), api.KeyUserID, userID)
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://localhost:8080/api/user/balance", nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, getBalance, nil)
 		suite.NoError(err)
 
 		rr := httptest.NewRecorder()
@@ -334,7 +340,7 @@ func (suite *apiTestSuite) TestGetBalance() {
 		suite.NoError(err)
 
 		expected := api.GetBalance500JSONResponse{
-			Code:    500,
+			Code:    http.StatusInternalServerError,
 			Message: "Internal server error",
 		}
 
@@ -349,10 +355,10 @@ func (suite *apiTestSuite) TestGetBalance() {
 func (suite *apiTestSuite) TestGetWithdrawals() {
 	userID, err := uuid.NewRandom()
 	suite.NoError(err)
+	ctx := context.WithValue(context.Background(), api.KeyUserID, userID)
 
 	suite.Run("Get withdrawals", func() {
-		ctx := context.WithValue(context.Background(), api.KeyUserID, userID)
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://localhost:8080/api/user/withdrawals", nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, getWithdrawals, nil)
 		suite.NoError(err)
 
 		rr := httptest.NewRecorder()
@@ -388,7 +394,7 @@ func (suite *apiTestSuite) TestGetWithdrawals() {
 	})
 
 	suite.Run("No user ID", func() {
-		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "http://localhost:8080/api/user/withdrawals", nil)
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, getWithdrawals, nil)
 		suite.NoError(err)
 
 		rr := httptest.NewRecorder()
@@ -400,7 +406,7 @@ func (suite *apiTestSuite) TestGetWithdrawals() {
 		suite.NoError(err)
 
 		expected := api.GetWithdrawals500JSONResponse{
-			Code:    500,
+			Code:    http.StatusInternalServerError,
 			Message: "Can not retrieve user ID",
 		}
 
@@ -412,8 +418,7 @@ func (suite *apiTestSuite) TestGetWithdrawals() {
 	})
 
 	suite.Run("No balance for current user", func() {
-		ctx := context.WithValue(context.Background(), api.KeyUserID, userID)
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://localhost:8080/api/user/withdrawals", nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, getWithdrawals, nil)
 		suite.NoError(err)
 
 		rr := httptest.NewRecorder()
@@ -426,8 +431,7 @@ func (suite *apiTestSuite) TestGetWithdrawals() {
 	})
 
 	suite.Run("Internal server error", func() {
-		ctx := context.WithValue(context.Background(), api.KeyUserID, userID)
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://localhost:8080/api/user/withdrawals", nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, getWithdrawals, nil)
 		suite.NoError(err)
 
 		rr := httptest.NewRecorder()
@@ -440,7 +444,7 @@ func (suite *apiTestSuite) TestGetWithdrawals() {
 		suite.NoError(err)
 
 		expected := api.GetWithdrawals500JSONResponse{
-			Code:    500,
+			Code:    http.StatusInternalServerError,
 			Message: "Internal server error",
 		}
 
@@ -455,10 +459,10 @@ func (suite *apiTestSuite) TestGetWithdrawals() {
 func (suite *apiTestSuite) TestGetOrders() {
 	userID, err := uuid.NewRandom()
 	suite.NoError(err)
+	ctx := context.WithValue(context.Background(), api.KeyUserID, userID)
 
 	suite.Run("Get orders", func() {
-		ctx := context.WithValue(context.Background(), api.KeyUserID, userID)
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://localhost:8080/api/user/orders", nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, getOrders, nil)
 		suite.NoError(err)
 
 		rr := httptest.NewRecorder()
@@ -495,7 +499,7 @@ func (suite *apiTestSuite) TestGetOrders() {
 	})
 
 	suite.Run("No user ID", func() {
-		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "http://localhost:8080/api/user/orders", nil)
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, getOrders, nil)
 		suite.NoError(err)
 
 		rr := httptest.NewRecorder()
@@ -507,7 +511,7 @@ func (suite *apiTestSuite) TestGetOrders() {
 		suite.NoError(err)
 
 		expected := api.GetOrders500JSONResponse{
-			Code:    500,
+			Code:    http.StatusInternalServerError,
 			Message: "Can not retrieve user ID",
 		}
 
@@ -519,8 +523,7 @@ func (suite *apiTestSuite) TestGetOrders() {
 	})
 
 	suite.Run("No orders for current user", func() {
-		ctx := context.WithValue(context.Background(), api.KeyUserID, userID)
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://localhost:8080/api/user/orders", nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, getOrders, nil)
 		suite.NoError(err)
 
 		rr := httptest.NewRecorder()
@@ -533,8 +536,7 @@ func (suite *apiTestSuite) TestGetOrders() {
 	})
 
 	suite.Run("Internal server error", func() {
-		ctx := context.WithValue(context.Background(), api.KeyUserID, userID)
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://localhost:8080/api/user/orders", nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, getOrders, nil)
 		suite.NoError(err)
 
 		rr := httptest.NewRecorder()
@@ -547,7 +549,7 @@ func (suite *apiTestSuite) TestGetOrders() {
 		suite.NoError(err)
 
 		expected := api.GetOrders500JSONResponse{
-			Code:    500,
+			Code:    http.StatusInternalServerError,
 			Message: "Internal server error",
 		}
 
@@ -562,14 +564,12 @@ func (suite *apiTestSuite) TestGetOrders() {
 func (suite *apiTestSuite) TestUploadOrder() {
 	userID, err := uuid.NewRandom()
 	suite.NoError(err)
+	ctx := context.WithValue(context.Background(), api.KeyUserID, userID)
 
 	suite.Run("Upload order", func() {
-		ctx := context.WithValue(context.Background(), api.KeyUserID, userID)
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://localhost:8080/api/user/orders", strings.NewReader("125"))
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, uploadOrder, strings.NewReader("125"))
 		suite.NoError(err)
-
 		req.Header.Add("Content-Type", "text/plain")
-
 		rr := httptest.NewRecorder()
 
 		suite.service.On("UploadOrder", userID, mmock.Anything).Once().Return(nil)
@@ -580,21 +580,20 @@ func (suite *apiTestSuite) TestUploadOrder() {
 	})
 
 	suite.Run("No user ID", func() {
-		req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, "http://localhost:8080/api/user/orders", strings.NewReader("125"))
+		request, err := http.NewRequestWithContext(context.Background(), http.MethodPost, uploadOrder, strings.NewReader("125"))
 		suite.NoError(err)
-
-		req.Header.Add("Content-Type", "text/plain")
+		request.Header.Add("Content-Type", "text/plain")
 
 		rr := httptest.NewRecorder()
 
-		suite.r.ServeHTTP(rr, req)
+		suite.r.ServeHTTP(rr, request)
 		res := rr.Result()
 		defer res.Body.Close()
 		resBody, err := io.ReadAll(res.Body)
 		suite.NoError(err)
 
 		expected := api.UploadOrder500JSONResponse{
-			Code:    500,
+			Code:    http.StatusInternalServerError,
 			Message: "Can not retrieve user ID",
 		}
 
@@ -606,22 +605,20 @@ func (suite *apiTestSuite) TestUploadOrder() {
 	})
 
 	suite.Run("Invalid order number", func() {
-		ctx := context.WithValue(context.Background(), api.KeyUserID, userID)
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://localhost:8080/api/user/orders", strings.NewReader("126"))
+		request, err := http.NewRequestWithContext(ctx, http.MethodPost, uploadOrder, strings.NewReader("126"))
 		suite.NoError(err)
-
-		req.Header.Add("Content-Type", "text/plain")
+		request.Header.Add("Content-Type", "text/plain")
 
 		rr := httptest.NewRecorder()
 
-		suite.r.ServeHTTP(rr, req)
+		suite.r.ServeHTTP(rr, request)
 		res := rr.Result()
 		defer res.Body.Close()
 		resBody, err := io.ReadAll(res.Body)
 		suite.NoError(err)
 
 		expected := api.UploadOrder422JSONResponse{
-			Code:    422,
+			Code:    http.StatusUnprocessableEntity,
 			Message: "Invalid order number",
 		}
 
@@ -633,10 +630,8 @@ func (suite *apiTestSuite) TestUploadOrder() {
 	})
 
 	suite.Run("Order already exists", func() {
-		ctx := context.WithValue(context.Background(), api.KeyUserID, userID)
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://localhost:8080/api/user/orders", strings.NewReader("125"))
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, uploadOrder, strings.NewReader("125"))
 		suite.NoError(err)
-
 		req.Header.Add("Content-Type", "text/plain")
 
 		rr := httptest.NewRecorder()
@@ -653,7 +648,7 @@ func (suite *apiTestSuite) TestUploadOrder() {
 		suite.NoError(err)
 
 		expected := api.UploadOrder409JSONResponse{
-			Code:    409,
+			Code:    http.StatusConflict,
 			Message: "Order already exists",
 		}
 
@@ -665,10 +660,8 @@ func (suite *apiTestSuite) TestUploadOrder() {
 	})
 
 	suite.Run("Order for current user already exists", func() {
-		ctx := context.WithValue(context.Background(), api.KeyUserID, userID)
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://localhost:8080/api/user/orders", strings.NewReader("125"))
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, uploadOrder, strings.NewReader("125"))
 		suite.NoError(err)
-
 		req.Header.Add("Content-Type", "text/plain")
 
 		rr := httptest.NewRecorder()
@@ -681,10 +674,8 @@ func (suite *apiTestSuite) TestUploadOrder() {
 	})
 
 	suite.Run("Internal server error", func() {
-		ctx := context.WithValue(context.Background(), api.KeyUserID, userID)
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://localhost:8080/api/user/orders", strings.NewReader("125"))
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, uploadOrder, strings.NewReader("125"))
 		suite.NoError(err)
-
 		req.Header.Add("Content-Type", "text/plain")
 
 		rr := httptest.NewRecorder()
@@ -697,7 +688,7 @@ func (suite *apiTestSuite) TestUploadOrder() {
 		suite.NoError(err)
 
 		expected := api.UploadOrder500JSONResponse{
-			Code:    500,
+			Code:    http.StatusInternalServerError,
 			Message: "Internal server error",
 		}
 
@@ -719,16 +710,13 @@ func (suite *apiTestSuite) TestWithdrawalRequest() {
 		Sum:         125.78,
 		ProcessedAt: &processedAt,
 	}
-
 	b, err := json.Marshal(withdrawal)
 	suite.NoError(err)
 
 	suite.Run("Withdrawal request", func() {
-
 		ctx := context.WithValue(context.Background(), api.KeyUserID, userID)
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://localhost:8080/api/user/balance/withdraw", bytes.NewReader(b))
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, withdrawalReq, bytes.NewReader(b))
 		suite.NoError(err)
-
 		req.Header.Add("Content-Type", "application/json")
 
 		rr := httptest.NewRecorder()
@@ -741,10 +729,8 @@ func (suite *apiTestSuite) TestWithdrawalRequest() {
 	})
 
 	suite.Run("No user ID", func() {
-
-		req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, "http://localhost:8080/api/user/balance/withdraw", bytes.NewReader(b))
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, withdrawalReq, bytes.NewReader(b))
 		suite.NoError(err)
-
 		req.Header.Add("Content-Type", "application/json")
 
 		rr := httptest.NewRecorder()
@@ -756,7 +742,7 @@ func (suite *apiTestSuite) TestWithdrawalRequest() {
 		suite.NoError(err)
 
 		expected := api.WithdrawalRequest500JSONResponse{
-			Code:    500,
+			Code:    http.StatusInternalServerError,
 			Message: "Can not retrieve user ID",
 		}
 
@@ -768,19 +754,17 @@ func (suite *apiTestSuite) TestWithdrawalRequest() {
 	})
 
 	suite.Run("Invalid order number", func() {
-		withdrawal := api.WithdrawalRequestJSONRequestBody{
+		w := api.WithdrawalRequestJSONRequestBody{
 			Order:       "126",
 			Sum:         125.78,
 			ProcessedAt: &processedAt,
 		}
-
-		b, err := json.Marshal(withdrawal)
+		b, err := json.Marshal(w)
 		suite.NoError(err)
 
 		ctx := context.WithValue(context.Background(), api.KeyUserID, userID)
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://localhost:8080/api/user/balance/withdraw", bytes.NewReader(b))
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, withdrawalReq, bytes.NewReader(b))
 		suite.NoError(err)
-
 		req.Header.Add("Content-Type", "application/json")
 
 		rr := httptest.NewRecorder()
@@ -792,7 +776,7 @@ func (suite *apiTestSuite) TestWithdrawalRequest() {
 		suite.NoError(err)
 
 		expected := api.WithdrawalRequest422JSONResponse{
-			Code:    422,
+			Code:    http.StatusUnprocessableEntity,
 			Message: "Invalid order number",
 		}
 
@@ -805,9 +789,8 @@ func (suite *apiTestSuite) TestWithdrawalRequest() {
 
 	suite.Run("Insufficient balance", func() {
 		ctx := context.WithValue(context.Background(), api.KeyUserID, userID)
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://localhost:8080/api/user/balance/withdraw", bytes.NewReader(b))
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, withdrawalReq, bytes.NewReader(b))
 		suite.NoError(err)
-
 		req.Header.Add("Content-Type", "application/json")
 
 		rr := httptest.NewRecorder()
@@ -820,7 +803,7 @@ func (suite *apiTestSuite) TestWithdrawalRequest() {
 		suite.NoError(err)
 
 		expected := api.WithdrawalRequest402JSONResponse{
-			Code:    402,
+			Code:    http.StatusPaymentRequired,
 			Message: storage.ErrInsufficientBalance.Error(),
 		}
 
@@ -833,9 +816,8 @@ func (suite *apiTestSuite) TestWithdrawalRequest() {
 
 	suite.Run("Internal server error", func() {
 		ctx := context.WithValue(context.Background(), api.KeyUserID, userID)
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://localhost:8080/api/user/balance/withdraw", bytes.NewReader(b))
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, withdrawalReq, bytes.NewReader(b))
 		suite.NoError(err)
-
 		req.Header.Add("Content-Type", "application/json")
 
 		rr := httptest.NewRecorder()
@@ -848,7 +830,7 @@ func (suite *apiTestSuite) TestWithdrawalRequest() {
 		suite.NoError(err)
 
 		expected := api.WithdrawalRequest500JSONResponse{
-			Code:    500,
+			Code:    http.StatusInternalServerError,
 			Message: "Internal server error",
 		}
 
