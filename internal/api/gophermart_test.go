@@ -84,6 +84,7 @@ func (suite *apiTestSuite) TestRegisterUser() {
 		suite.service.On("Authenticate", u.Login, u.Password).Once().Return("token", nil)
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
+		defer res.Body.Close()
 
 		suite.Equal("Bearer token", res.Header.Get("Authorization"))
 	})
@@ -190,6 +191,7 @@ func (suite *apiTestSuite) TestLoginUser() {
 		suite.service.On("Authenticate", u.Login, u.Password).Once().Return("token", nil)
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
+		defer res.Body.Close()
 
 		suite.Equal("Bearer token", res.Header.Get("Authorization"))
 	})
@@ -425,6 +427,7 @@ func (suite *apiTestSuite) TestGetWithdrawals() {
 		suite.service.On("GetWithdrawals", userID).Once().Return(nil, sql.ErrNoRows)
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
+		defer res.Body.Close()
 
 		suite.Equal(http.StatusNoContent, res.StatusCode)
 	})
@@ -529,6 +532,7 @@ func (suite *apiTestSuite) TestGetOrders() {
 		suite.service.On("GetOrders", userID).Once().Return(nil, sql.ErrNoRows)
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
+		defer res.Body.Close()
 
 		suite.Equal(http.StatusNoContent, res.StatusCode)
 	})
@@ -573,6 +577,7 @@ func (suite *apiTestSuite) TestUploadOrder() {
 		suite.service.On("UploadOrder", userID, mmock.Anything).Once().Return(nil)
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
+		defer res.Body.Close()
 
 		suite.Equal(http.StatusAccepted, res.StatusCode)
 	})
@@ -667,6 +672,7 @@ func (suite *apiTestSuite) TestUploadOrder() {
 		suite.service.On("UploadOrder", userID, mmock.Anything).Once().Return(service.ErrOrderAlreadyExists)
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
+		defer res.Body.Close()
 
 		suite.Equal(http.StatusOK, res.StatusCode)
 	})
@@ -722,6 +728,7 @@ func (suite *apiTestSuite) TestWithdrawalRequest() {
 		suite.service.On("WithdrawalRequest", userID, withdrawal.Order, withdrawal.Sum).Once().Return(nil)
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
+		defer res.Body.Close()
 
 		suite.Equal(http.StatusOK, res.StatusCode)
 	})
