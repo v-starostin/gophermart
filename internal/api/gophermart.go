@@ -249,7 +249,7 @@ func (g *Gophermart) GetWithdrawals(ctx context.Context, request GetWithdrawalsR
 	userID, ok := ctx.Value(KeyUserID).(uuid.UUID)
 	if !ok {
 		return GetWithdrawals500JSONResponse{
-			Code:    http.StatusBadRequest,
+			Code:    http.StatusInternalServerError,
 			Message: "Can not retrieve user ID",
 		}, nil
 	}
