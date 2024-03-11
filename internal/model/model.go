@@ -16,12 +16,6 @@ type User struct {
 	Password string
 }
 
-type AccrualOrder struct {
-	Order   string  `json:"order"`
-	Status  string  `json:"status"`
-	Accrual float64 `json:"accrual"`
-}
-
 type Order struct {
 	Number     string    `json:"order"`
 	Status     string    `json:"status"`

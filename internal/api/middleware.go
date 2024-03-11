@@ -27,26 +27,26 @@ func Authenticate(secret []byte) func(http.Handler) http.Handler {
 			default:
 				authHeader := r.Header.Get("Authorization")
 				if len(authHeader) == 0 {
-					writeResponse(w, http.StatusUnauthorized, model.Error{Error: "Unauthorized"})
+					writeResponse(w, http.StatusUnauthorized, model.Error{Error: "No Authorization header"})
 					return
 				}
 				h := strings.SplitN(authHeader, " ", 2)
 				if len(h) != 2 {
-					writeResponse(w, http.StatusUnauthorized, model.Error{Error: "Unauthorized"})
+					writeResponse(w, http.StatusUnauthorized, model.Error{Error: "Incorrect header"})
 					return
 				}
 				if strings.ToLower(h[0]) != "bearer" {
-					writeResponse(w, http.StatusUnauthorized, model.Error{Error: "Unauthorized"})
+					writeResponse(w, http.StatusUnauthorized, model.Error{Error: "Incorrect header"})
 					return
 				}
 				token, err := jwt.ParseString(h[1], jwt.WithVerify(jwa.HS256, secret), jwt.WithValidate(true))
 				if err != nil {
-					writeResponse(w, http.StatusUnauthorized, model.Error{Error: "Unauthorized"})
+					writeResponse(w, http.StatusUnauthorized, model.Error{Error: "Verification token error"})
 					return
 				}
 				userID, err = uuid.Parse(token.Subject())
 				if err != nil {
-					writeResponse(w, http.StatusInternalServerError, model.Error{Error: "Internal server error"})
+					writeResponse(w, http.StatusInternalServerError, model.Error{Error: "Parsing token error"})
 					return
 				}
 			}
