@@ -363,10 +363,9 @@ func (suite *apiTestSuite) TestGetWithdrawals() {
 
 		rr := httptest.NewRecorder()
 
-		// todo: fix time
 		withdrawals := []model.Withdrawal{
-			{Order: "125", Sum: 255.54, ProcessedAt: time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC)},
-			{Order: "2006", Sum: 1024.0, ProcessedAt: time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC)},
+			{Order: "125", Sum: 255.54, ProcessedAt: time.Date(2024, time.January, 1, 1, 1, 0, 0, time.UTC)},
+			{Order: "2006", Sum: 1024.0, ProcessedAt: time.Date(2024, time.January, 2, 2, 2, 0, 0, time.UTC)},
 		}
 
 		suite.service.On("GetWithdrawals", userID).Once().Return(withdrawals, nil)
@@ -467,10 +466,9 @@ func (suite *apiTestSuite) TestGetOrders() {
 
 		rr := httptest.NewRecorder()
 
-		// todo: fix time
 		orders := []model.Order{
-			{Number: "125", Accrual: 255.54, Status: "PROCESSED", UploadedAt: time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC)},
-			{Number: "2006", Accrual: 1024.0, Status: "PROCESSED", UploadedAt: time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC)},
+			{Number: "125", Accrual: 255.54, Status: "PROCESSED", UploadedAt: time.Date(2024, time.January, 1, 2, 2, 2, 0, time.UTC)},
+			{Number: "2006", Accrual: 1024.0, Status: "PROCESSED", UploadedAt: time.Date(2024, time.January, 2, 1, 1, 1, 0, time.UTC)},
 		}
 
 		suite.service.On("GetOrders", userID).Once().Return(orders, nil)
