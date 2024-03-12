@@ -100,12 +100,7 @@ func (g *Gophermart) LoginUser(ctx context.Context, request LoginUserRequestObje
 }
 
 func (g *Gophermart) GetOrders(ctx context.Context, request GetOrdersRequestObject) (GetOrdersResponseObject, error) {
-	userID, ok := ctx.Value(KeyUserID).(uuid.UUID)
-	if !ok {
-		return GetOrders500JSONResponse{
-			Message: "Can not retrieve user ID",
-		}, nil
-	}
+	userID := ctx.Value(KeyUserID).(uuid.UUID)
 
 	orders, err := g.service.GetOrders(userID)
 	if err != nil {
@@ -134,12 +129,7 @@ func (g *Gophermart) GetOrders(ctx context.Context, request GetOrdersRequestObje
 }
 
 func (g *Gophermart) UploadOrder(ctx context.Context, request UploadOrderRequestObject) (UploadOrderResponseObject, error) {
-	userID, ok := ctx.Value(KeyUserID).(uuid.UUID)
-	if !ok {
-		return UploadOrder500JSONResponse{
-			Message: "Can not retrieve user ID",
-		}, nil
-	}
+	userID := ctx.Value(KeyUserID).(uuid.UUID)
 
 	if valid := luhn.IsValid(*request.Body); !valid {
 		return UploadOrder422JSONResponse{
@@ -171,12 +161,7 @@ func (g *Gophermart) UploadOrder(ctx context.Context, request UploadOrderRequest
 }
 
 func (g *Gophermart) GetBalance(ctx context.Context, request GetBalanceRequestObject) (GetBalanceResponseObject, error) {
-	userID, ok := ctx.Value(KeyUserID).(uuid.UUID)
-	if !ok {
-		return GetBalance500JSONResponse{
-			Message: "Can not retrieve user ID",
-		}, nil
-	}
+	userID := ctx.Value(KeyUserID).(uuid.UUID)
 
 	balance, withdrawn, err := g.service.GetBalance(userID)
 	if err != nil {
@@ -197,12 +182,7 @@ func (g *Gophermart) GetBalance(ctx context.Context, request GetBalanceRequestOb
 }
 
 func (g *Gophermart) WithdrawalRequest(ctx context.Context, request WithdrawalRequestRequestObject) (WithdrawalRequestResponseObject, error) {
-	userID, ok := ctx.Value(KeyUserID).(uuid.UUID)
-	if !ok {
-		return WithdrawalRequest500JSONResponse{
-			Message: "Can not retrieve user ID",
-		}, nil
-	}
+	userID := ctx.Value(KeyUserID).(uuid.UUID)
 
 	if valid := luhn.IsValid(request.Body.Order); !valid {
 		return WithdrawalRequest422JSONResponse{
@@ -228,12 +208,7 @@ func (g *Gophermart) WithdrawalRequest(ctx context.Context, request WithdrawalRe
 }
 
 func (g *Gophermart) GetWithdrawals(ctx context.Context, request GetWithdrawalsRequestObject) (GetWithdrawalsResponseObject, error) {
-	userID, ok := ctx.Value(KeyUserID).(uuid.UUID)
-	if !ok {
-		return GetWithdrawals500JSONResponse{
-			Message: "Can not retrieve user ID",
-		}, nil
-	}
+	userID := ctx.Value(KeyUserID).(uuid.UUID)
 
 	withdrawals, err := g.service.GetWithdrawals(userID)
 	if err != nil {

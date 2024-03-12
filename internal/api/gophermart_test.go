@@ -274,29 +274,6 @@ func (suite *apiTestSuite) TestGetBalance() {
 		suite.Equal(expected, got)
 	})
 
-	suite.Run("No user ID", func() {
-		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "http://localhost:8080/api/user/balance", nil)
-		suite.NoError(err)
-
-		rr := httptest.NewRecorder()
-
-		suite.r.ServeHTTP(rr, req)
-		res := rr.Result()
-		defer res.Body.Close()
-		resBody, err := io.ReadAll(res.Body)
-		suite.NoError(err)
-
-		expected := api.GetBalance500JSONResponse{
-			Message: "Can not retrieve user ID",
-		}
-
-		var got api.GetBalance500JSONResponse
-		err = json.Unmarshal(resBody, &got)
-		suite.NoError(err)
-
-		suite.Equal(expected, got)
-	})
-
 	suite.Run("No balance for current user", func() {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, getBalance, nil)
 		suite.NoError(err)
@@ -387,29 +364,6 @@ func (suite *apiTestSuite) TestGetWithdrawals() {
 		suite.Equal(expected, got)
 	})
 
-	suite.Run("No user ID", func() {
-		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, getWithdrawals, nil)
-		suite.NoError(err)
-
-		rr := httptest.NewRecorder()
-
-		suite.r.ServeHTTP(rr, req)
-		res := rr.Result()
-		defer res.Body.Close()
-		resBody, err := io.ReadAll(res.Body)
-		suite.NoError(err)
-
-		expected := api.GetWithdrawals500JSONResponse{
-			Message: "Can not retrieve user ID",
-		}
-
-		var got api.GetWithdrawals500JSONResponse
-		err = json.Unmarshal(resBody, &got)
-		suite.NoError(err)
-
-		suite.Equal(expected, got)
-	})
-
 	suite.Run("No balance for current user", func() {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, getWithdrawals, nil)
 		suite.NoError(err)
@@ -490,29 +444,6 @@ func (suite *apiTestSuite) TestGetOrders() {
 		suite.Equal(expected, got)
 	})
 
-	suite.Run("No user ID", func() {
-		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, getOrders, nil)
-		suite.NoError(err)
-
-		rr := httptest.NewRecorder()
-
-		suite.r.ServeHTTP(rr, req)
-		res := rr.Result()
-		defer res.Body.Close()
-		resBody, err := io.ReadAll(res.Body)
-		suite.NoError(err)
-
-		expected := api.GetOrders500JSONResponse{
-			Message: "Can not retrieve user ID",
-		}
-
-		var got api.GetOrders500JSONResponse
-		err = json.Unmarshal(resBody, &got)
-		suite.NoError(err)
-
-		suite.Equal(expected, got)
-	})
-
 	suite.Run("No orders for current user", func() {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, getOrders, nil)
 		suite.NoError(err)
@@ -569,30 +500,6 @@ func (suite *apiTestSuite) TestUploadOrder() {
 		defer res.Body.Close()
 
 		suite.Equal(http.StatusAccepted, res.StatusCode)
-	})
-
-	suite.Run("No user ID", func() {
-		request, err := http.NewRequestWithContext(context.Background(), http.MethodPost, uploadOrder, strings.NewReader("125"))
-		suite.NoError(err)
-		request.Header.Add("Content-Type", "text/plain")
-
-		rr := httptest.NewRecorder()
-
-		suite.r.ServeHTTP(rr, request)
-		res := rr.Result()
-		defer res.Body.Close()
-		resBody, err := io.ReadAll(res.Body)
-		suite.NoError(err)
-
-		expected := api.UploadOrder500JSONResponse{
-			Message: "Can not retrieve user ID",
-		}
-
-		var got api.UploadOrder500JSONResponse
-		err = json.Unmarshal(resBody, &got)
-		suite.NoError(err)
-
-		suite.Equal(expected, got)
 	})
 
 	suite.Run("Invalid order number", func() {
@@ -716,30 +623,6 @@ func (suite *apiTestSuite) TestWithdrawalRequest() {
 		defer res.Body.Close()
 
 		suite.Equal(http.StatusOK, res.StatusCode)
-	})
-
-	suite.Run("No user ID", func() {
-		req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, withdrawalReq, bytes.NewReader(b))
-		suite.NoError(err)
-		req.Header.Add("Content-Type", "application/json")
-
-		rr := httptest.NewRecorder()
-
-		suite.r.ServeHTTP(rr, req)
-		res := rr.Result()
-		defer res.Body.Close()
-		resBody, err := io.ReadAll(res.Body)
-		suite.NoError(err)
-
-		expected := api.WithdrawalRequest500JSONResponse{
-			Message: "Can not retrieve user ID",
-		}
-
-		var got api.WithdrawalRequest500JSONResponse
-		err = json.Unmarshal(resBody, &got)
-		suite.NoError(err)
-
-		suite.Equal(expected, got)
 	})
 
 	suite.Run("Invalid order number", func() {
