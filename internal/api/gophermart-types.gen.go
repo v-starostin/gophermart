@@ -15,9 +15,6 @@ type Balance struct {
 
 // Error defines model for Error.
 type Error struct {
-	// Code Error code
-	Code int `json:"code"`
-
 	// Message Error message
 	Message string `json:"message"`
 }

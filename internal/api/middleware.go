@@ -9,8 +9,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/lestrrat-go/jwx/jwt"
-
-	"github.com/v-starostin/gophermart/internal/model"
 )
 
 type contextKey string
@@ -27,26 +25,26 @@ func Authenticate(secret []byte) func(http.Handler) http.Handler {
 			default:
 				authHeader := r.Header.Get("Authorization")
 				if len(authHeader) == 0 {
-					writeResponse(w, http.StatusUnauthorized, model.Error{Error: "No Authorization header"})
+					writeResponse(w, http.StatusUnauthorized, Error{Message: "No Authorization header"})
 					return
 				}
 				h := strings.SplitN(authHeader, " ", 2)
 				if len(h) != 2 {
-					writeResponse(w, http.StatusUnauthorized, model.Error{Error: "Incorrect header"})
+					writeResponse(w, http.StatusUnauthorized, Error{Message: "Incorrect header"})
 					return
 				}
 				if strings.ToLower(h[0]) != "bearer" {
-					writeResponse(w, http.StatusUnauthorized, model.Error{Error: "Incorrect header"})
+					writeResponse(w, http.StatusUnauthorized, Error{Message: "Incorrect header"})
 					return
 				}
 				token, err := jwt.ParseString(h[1], jwt.WithVerify(jwa.HS256, secret), jwt.WithValidate(true))
 				if err != nil {
-					writeResponse(w, http.StatusUnauthorized, model.Error{Error: "Verification token error"})
+					writeResponse(w, http.StatusUnauthorized, Error{Message: "Verification token error"})
 					return
 				}
 				userID, err = uuid.Parse(token.Subject())
 				if err != nil {
-					writeResponse(w, http.StatusInternalServerError, model.Error{Error: "Parsing token error"})
+					writeResponse(w, http.StatusInternalServerError, Error{Message: "Parsing token error"})
 					return
 				}
 			}
@@ -61,7 +59,7 @@ func writeResponse(w http.ResponseWriter, code int, v any) {
 	b, err := json.Marshal(v)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{error: "Internal server error"}`))
+		w.Write([]byte(`{message: "Internal server error"}`))
 		return
 	}
 	w.WriteHeader(code)

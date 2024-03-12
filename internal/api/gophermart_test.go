@@ -108,7 +108,6 @@ func (suite *apiTestSuite) TestRegisterUser() {
 		suite.NoError(err)
 
 		expected := api.RegisterUser409JSONResponse{
-			Code:    http.StatusConflict,
 			Message: "User already exists",
 		}
 
@@ -134,7 +133,6 @@ func (suite *apiTestSuite) TestRegisterUser() {
 		suite.NoError(err)
 
 		expected := api.RegisterUser500JSONResponse{
-			Code:    http.StatusInternalServerError,
 			Message: "Internal server error",
 		}
 
@@ -161,7 +159,6 @@ func (suite *apiTestSuite) TestRegisterUser() {
 		suite.NoError(err)
 
 		expected := api.RegisterUser500JSONResponse{
-			Code:    http.StatusInternalServerError,
 			Message: "Internal server error",
 		}
 
@@ -211,7 +208,6 @@ func (suite *apiTestSuite) TestLoginUser() {
 		suite.NoError(err)
 
 		expected := api.LoginUser401JSONResponse{
-			Code:    http.StatusUnauthorized,
 			Message: "Unauthorized",
 		}
 
@@ -237,7 +233,6 @@ func (suite *apiTestSuite) TestLoginUser() {
 		suite.NoError(err)
 
 		expected := api.LoginUser500JSONResponse{
-			Code:    http.StatusInternalServerError,
 			Message: "Internal server error",
 		}
 
@@ -292,7 +287,6 @@ func (suite *apiTestSuite) TestGetBalance() {
 		suite.NoError(err)
 
 		expected := api.GetBalance500JSONResponse{
-			Code:    http.StatusInternalServerError,
 			Message: "Can not retrieve user ID",
 		}
 
@@ -342,7 +336,6 @@ func (suite *apiTestSuite) TestGetBalance() {
 		suite.NoError(err)
 
 		expected := api.GetBalance500JSONResponse{
-			Code:    http.StatusInternalServerError,
 			Message: "Internal server error",
 		}
 
@@ -407,7 +400,6 @@ func (suite *apiTestSuite) TestGetWithdrawals() {
 		suite.NoError(err)
 
 		expected := api.GetWithdrawals500JSONResponse{
-			Code:    http.StatusInternalServerError,
 			Message: "Can not retrieve user ID",
 		}
 
@@ -446,7 +438,6 @@ func (suite *apiTestSuite) TestGetWithdrawals() {
 		suite.NoError(err)
 
 		expected := api.GetWithdrawals500JSONResponse{
-			Code:    http.StatusInternalServerError,
 			Message: "Internal server error",
 		}
 
@@ -512,7 +503,6 @@ func (suite *apiTestSuite) TestGetOrders() {
 		suite.NoError(err)
 
 		expected := api.GetOrders500JSONResponse{
-			Code:    http.StatusInternalServerError,
 			Message: "Can not retrieve user ID",
 		}
 
@@ -551,7 +541,6 @@ func (suite *apiTestSuite) TestGetOrders() {
 		suite.NoError(err)
 
 		expected := api.GetOrders500JSONResponse{
-			Code:    http.StatusInternalServerError,
 			Message: "Internal server error",
 		}
 
@@ -596,7 +585,6 @@ func (suite *apiTestSuite) TestUploadOrder() {
 		suite.NoError(err)
 
 		expected := api.UploadOrder500JSONResponse{
-			Code:    http.StatusInternalServerError,
 			Message: "Can not retrieve user ID",
 		}
 
@@ -621,7 +609,6 @@ func (suite *apiTestSuite) TestUploadOrder() {
 		suite.NoError(err)
 
 		expected := api.UploadOrder422JSONResponse{
-			Code:    http.StatusUnprocessableEntity,
 			Message: "Invalid order number",
 		}
 
@@ -651,7 +638,6 @@ func (suite *apiTestSuite) TestUploadOrder() {
 		suite.NoError(err)
 
 		expected := api.UploadOrder409JSONResponse{
-			Code:    http.StatusConflict,
 			Message: "Order already exists",
 		}
 
@@ -692,7 +678,6 @@ func (suite *apiTestSuite) TestUploadOrder() {
 		suite.NoError(err)
 
 		expected := api.UploadOrder500JSONResponse{
-			Code:    http.StatusInternalServerError,
 			Message: "Internal server error",
 		}
 
@@ -747,7 +732,6 @@ func (suite *apiTestSuite) TestWithdrawalRequest() {
 		suite.NoError(err)
 
 		expected := api.WithdrawalRequest500JSONResponse{
-			Code:    http.StatusInternalServerError,
 			Message: "Can not retrieve user ID",
 		}
 
@@ -781,7 +765,6 @@ func (suite *apiTestSuite) TestWithdrawalRequest() {
 		suite.NoError(err)
 
 		expected := api.WithdrawalRequest422JSONResponse{
-			Code:    http.StatusUnprocessableEntity,
 			Message: "Invalid order number",
 		}
 
@@ -808,7 +791,6 @@ func (suite *apiTestSuite) TestWithdrawalRequest() {
 		suite.NoError(err)
 
 		expected := api.WithdrawalRequest402JSONResponse{
-			Code:    http.StatusPaymentRequired,
 			Message: storage.ErrInsufficientBalance.Error(),
 		}
 
@@ -835,7 +817,6 @@ func (suite *apiTestSuite) TestWithdrawalRequest() {
 		suite.NoError(err)
 
 		expected := api.WithdrawalRequest500JSONResponse{
-			Code:    http.StatusInternalServerError,
 			Message: "Internal server error",
 		}
 
