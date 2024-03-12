@@ -35,7 +35,6 @@ func New() (*Config, error) {
 	return cfg, nil
 }
 
-// todo: set default values
 func parseFlags() *Config {
 	address := flag.String("a", "", "HTTP server address")
 	dbURI := flag.String("d", "", "DB URI")

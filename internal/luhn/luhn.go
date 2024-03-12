@@ -19,5 +19,6 @@ func IsValid(order string) bool {
 		sum += last
 		number /= 10
 	}
+
 	return sum%10 == 0
 }

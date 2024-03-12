@@ -38,8 +38,7 @@ func (s *Storage) WithdrawalRequest(userID uuid.UUID, orderNumber string, sum fl
 	}
 
 	var balance float64
-	query = "SELECT balance FROM balances WHERE user_id = $1"
-	err = tx.QueryRow(query, userID).Scan(&balance)
+	err = tx.QueryRow("SELECT balance FROM balances WHERE user_id = $1", userID).Scan(&balance)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -50,8 +49,7 @@ func (s *Storage) WithdrawalRequest(userID uuid.UUID, orderNumber string, sum fl
 		tx.Rollback()
 		return ErrInsufficientBalance
 	}
-	query = "UPDATE balances SET balance = $1 WHERE user_id = $2"
-	_, err = tx.Exec(query, balance, userID)
+	_, err = tx.Exec("UPDATE balances SET balance = $1 WHERE user_id = $2", balance, userID)
 	if err != nil {
 		return err
 	}
@@ -93,7 +91,7 @@ func (s *Storage) AddOrder(userID uuid.UUID, order model.Order) error {
 	}
 
 	if order.Status == "PROCESSED" {
-		query = "UPDATE balances SET balance = (SELECT sum(balance) + $1 FROM balances WHERE user_id = $2)"
+		query = "UPDATE balances SET balance = (SELECT balance + $1 FROM balances WHERE user_id = $2)"
 		_, err = tx.Exec(query, order.Accrual, userID)
 		if err != nil {
 			tx.Rollback()
@@ -194,6 +192,7 @@ func (s *Storage) AddUser(login, password string) error {
 	if err != nil {
 		return err
 	}
+
 	_, err = tx.Exec("INSERT INTO users (id, login, password) VALUES ($1, $2, $3)", userID, login, hash(password))
 	if err != nil {
 		tx.Rollback()

@@ -122,6 +122,7 @@ func (s *Service) generateAccessToken(id uuid.UUID) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	return string(signedToken), nil
 }
 
@@ -148,6 +149,7 @@ func (s *Service) fetchOrder(orderNumber string) (*model.Order, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	var o model.Order
 	if err := json.Unmarshal(b, &o); err != nil {
 		return nil, err

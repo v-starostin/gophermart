@@ -6,10 +6,6 @@ import (
 	"github.com/google/uuid"
 )
 
-type Error struct {
-	Error string `json:"error"`
-}
-
 type User struct {
 	ID       uuid.UUID
 	Login    string
