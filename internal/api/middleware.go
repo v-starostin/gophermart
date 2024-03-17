@@ -11,9 +11,17 @@ import (
 	"github.com/lestrrat-go/jwx/jwt"
 )
 
-type contextKey string
+type key string
 
-const KeyUserID contextKey = "userID"
+const KeyUserID key = "userID"
+
+func NewContext(ctx context.Context, userID uuid.UUID) context.Context {
+	return context.WithValue(ctx, KeyUserID, userID)
+}
+
+func FromContext(ctx context.Context) uuid.UUID {
+	return ctx.Value(KeyUserID).(uuid.UUID)
+}
 
 func Authenticate(secret []byte) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -49,7 +57,7 @@ func Authenticate(secret []byte) func(http.Handler) http.Handler {
 				}
 			}
 
-			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), KeyUserID, userID)))
+			next.ServeHTTP(w, r.WithContext(NewContext(r.Context(), userID)))
 		})
 	}
 }

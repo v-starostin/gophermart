@@ -3,6 +3,8 @@
 package mock
 
 import (
+	context "context"
+
 	mock "github.com/stretchr/testify/mock"
 	model "github.com/v-starostin/gophermart/internal/model"
 
@@ -14,17 +16,17 @@ type Storage struct {
 	mock.Mock
 }
 
-// AddOrder provides a mock function with given fields: userID, order
-func (_m *Storage) AddOrder(userID uuid.UUID, order model.Order) error {
-	ret := _m.Called(userID, order)
+// AddOrder provides a mock function with given fields: ctx, userID, order
+func (_m *Storage) AddOrder(ctx context.Context, userID uuid.UUID, order model.Order) error {
+	ret := _m.Called(ctx, userID, order)
 
 	if len(ret) == 0 {
 		panic("no return value specified for AddOrder")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(uuid.UUID, model.Order) error); ok {
-		r0 = rf(userID, order)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, model.Order) error); ok {
+		r0 = rf(ctx, userID, order)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -32,17 +34,17 @@ func (_m *Storage) AddOrder(userID uuid.UUID, order model.Order) error {
 	return r0
 }
 
-// AddUser provides a mock function with given fields: login, password
-func (_m *Storage) AddUser(login string, password string) error {
-	ret := _m.Called(login, password)
+// AddUser provides a mock function with given fields: ctx, login, password
+func (_m *Storage) AddUser(ctx context.Context, login string, password string) error {
+	ret := _m.Called(ctx, login, password)
 
 	if len(ret) == 0 {
 		panic("no return value specified for AddUser")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string, string) error); ok {
-		r0 = rf(login, password)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
+		r0 = rf(ctx, login, password)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -50,9 +52,9 @@ func (_m *Storage) AddUser(login string, password string) error {
 	return r0
 }
 
-// GetBalance provides a mock function with given fields: _a0
-func (_m *Storage) GetBalance(_a0 uuid.UUID) (float64, float64, error) {
-	ret := _m.Called(_a0)
+// GetBalance provides a mock function with given fields: ctx, userID
+func (_m *Storage) GetBalance(ctx context.Context, userID uuid.UUID) (float64, float64, error) {
+	ret := _m.Called(ctx, userID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetBalance")
@@ -61,23 +63,23 @@ func (_m *Storage) GetBalance(_a0 uuid.UUID) (float64, float64, error) {
 	var r0 float64
 	var r1 float64
 	var r2 error
-	if rf, ok := ret.Get(0).(func(uuid.UUID) (float64, float64, error)); ok {
-		return rf(_a0)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (float64, float64, error)); ok {
+		return rf(ctx, userID)
 	}
-	if rf, ok := ret.Get(0).(func(uuid.UUID) float64); ok {
-		r0 = rf(_a0)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) float64); ok {
+		r0 = rf(ctx, userID)
 	} else {
 		r0 = ret.Get(0).(float64)
 	}
 
-	if rf, ok := ret.Get(1).(func(uuid.UUID) float64); ok {
-		r1 = rf(_a0)
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) float64); ok {
+		r1 = rf(ctx, userID)
 	} else {
 		r1 = ret.Get(1).(float64)
 	}
 
-	if rf, ok := ret.Get(2).(func(uuid.UUID) error); ok {
-		r2 = rf(_a0)
+	if rf, ok := ret.Get(2).(func(context.Context, uuid.UUID) error); ok {
+		r2 = rf(ctx, userID)
 	} else {
 		r2 = ret.Error(2)
 	}
@@ -85,9 +87,9 @@ func (_m *Storage) GetBalance(_a0 uuid.UUID) (float64, float64, error) {
 	return r0, r1, r2
 }
 
-// GetOrder provides a mock function with given fields: userID, orderNumber
-func (_m *Storage) GetOrder(userID uuid.UUID, orderNumber string) (*model.Order, error) {
-	ret := _m.Called(userID, orderNumber)
+// GetOrder provides a mock function with given fields: ctx, userID, orderNumber
+func (_m *Storage) GetOrder(ctx context.Context, userID uuid.UUID, orderNumber string) (*model.Order, error) {
+	ret := _m.Called(ctx, userID, orderNumber)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetOrder")
@@ -95,19 +97,19 @@ func (_m *Storage) GetOrder(userID uuid.UUID, orderNumber string) (*model.Order,
 
 	var r0 *model.Order
 	var r1 error
-	if rf, ok := ret.Get(0).(func(uuid.UUID, string) (*model.Order, error)); ok {
-		return rf(userID, orderNumber)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, string) (*model.Order, error)); ok {
+		return rf(ctx, userID, orderNumber)
 	}
-	if rf, ok := ret.Get(0).(func(uuid.UUID, string) *model.Order); ok {
-		r0 = rf(userID, orderNumber)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, string) *model.Order); ok {
+		r0 = rf(ctx, userID, orderNumber)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*model.Order)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(uuid.UUID, string) error); ok {
-		r1 = rf(userID, orderNumber)
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, string) error); ok {
+		r1 = rf(ctx, userID, orderNumber)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -115,9 +117,9 @@ func (_m *Storage) GetOrder(userID uuid.UUID, orderNumber string) (*model.Order,
 	return r0, r1
 }
 
-// GetOrders provides a mock function with given fields: userID
-func (_m *Storage) GetOrders(userID uuid.UUID) ([]model.Order, error) {
-	ret := _m.Called(userID)
+// GetOrders provides a mock function with given fields: ctx, userID
+func (_m *Storage) GetOrders(ctx context.Context, userID uuid.UUID) ([]model.Order, error) {
+	ret := _m.Called(ctx, userID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetOrders")
@@ -125,19 +127,19 @@ func (_m *Storage) GetOrders(userID uuid.UUID) ([]model.Order, error) {
 
 	var r0 []model.Order
 	var r1 error
-	if rf, ok := ret.Get(0).(func(uuid.UUID) ([]model.Order, error)); ok {
-		return rf(userID)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) ([]model.Order, error)); ok {
+		return rf(ctx, userID)
 	}
-	if rf, ok := ret.Get(0).(func(uuid.UUID) []model.Order); ok {
-		r0 = rf(userID)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) []model.Order); ok {
+		r0 = rf(ctx, userID)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]model.Order)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(uuid.UUID) error); ok {
-		r1 = rf(userID)
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, userID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -145,9 +147,9 @@ func (_m *Storage) GetOrders(userID uuid.UUID) ([]model.Order, error) {
 	return r0, r1
 }
 
-// GetUser provides a mock function with given fields: login, password
-func (_m *Storage) GetUser(login string, password string) (*model.User, error) {
-	ret := _m.Called(login, password)
+// GetUser provides a mock function with given fields: ctx, login, password
+func (_m *Storage) GetUser(ctx context.Context, login string, password string) (*model.User, error) {
+	ret := _m.Called(ctx, login, password)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetUser")
@@ -155,19 +157,19 @@ func (_m *Storage) GetUser(login string, password string) (*model.User, error) {
 
 	var r0 *model.User
 	var r1 error
-	if rf, ok := ret.Get(0).(func(string, string) (*model.User, error)); ok {
-		return rf(login, password)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) (*model.User, error)); ok {
+		return rf(ctx, login, password)
 	}
-	if rf, ok := ret.Get(0).(func(string, string) *model.User); ok {
-		r0 = rf(login, password)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) *model.User); ok {
+		r0 = rf(ctx, login, password)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*model.User)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(login, password)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, login, password)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -175,9 +177,9 @@ func (_m *Storage) GetUser(login string, password string) (*model.User, error) {
 	return r0, r1
 }
 
-// GetWithdrawals provides a mock function with given fields: userID
-func (_m *Storage) GetWithdrawals(userID uuid.UUID) ([]model.Withdrawal, error) {
-	ret := _m.Called(userID)
+// GetWithdrawals provides a mock function with given fields: ctx, userID
+func (_m *Storage) GetWithdrawals(ctx context.Context, userID uuid.UUID) ([]model.Withdrawal, error) {
+	ret := _m.Called(ctx, userID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetWithdrawals")
@@ -185,19 +187,19 @@ func (_m *Storage) GetWithdrawals(userID uuid.UUID) ([]model.Withdrawal, error) 
 
 	var r0 []model.Withdrawal
 	var r1 error
-	if rf, ok := ret.Get(0).(func(uuid.UUID) ([]model.Withdrawal, error)); ok {
-		return rf(userID)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) ([]model.Withdrawal, error)); ok {
+		return rf(ctx, userID)
 	}
-	if rf, ok := ret.Get(0).(func(uuid.UUID) []model.Withdrawal); ok {
-		r0 = rf(userID)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) []model.Withdrawal); ok {
+		r0 = rf(ctx, userID)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]model.Withdrawal)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(uuid.UUID) error); ok {
-		r1 = rf(userID)
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, userID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -205,17 +207,35 @@ func (_m *Storage) GetWithdrawals(userID uuid.UUID) ([]model.Withdrawal, error) 
 	return r0, r1
 }
 
-// WithdrawalRequest provides a mock function with given fields: userID, orderNumber, sum
-func (_m *Storage) WithdrawalRequest(userID uuid.UUID, orderNumber string, sum float64) error {
-	ret := _m.Called(userID, orderNumber, sum)
+// UpdateOrder provides a mock function with given fields: ctx, userID, order
+func (_m *Storage) UpdateOrder(ctx context.Context, userID uuid.UUID, order model.Order) error {
+	ret := _m.Called(ctx, userID, order)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateOrder")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, model.Order) error); ok {
+		r0 = rf(ctx, userID, order)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// WithdrawalRequest provides a mock function with given fields: ctx, userID, orderNumber, sum
+func (_m *Storage) WithdrawalRequest(ctx context.Context, userID uuid.UUID, orderNumber string, sum float64) error {
+	ret := _m.Called(ctx, userID, orderNumber, sum)
 
 	if len(ret) == 0 {
 		panic("no return value specified for WithdrawalRequest")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(uuid.UUID, string, float64) error); ok {
-		r0 = rf(userID, orderNumber, sum)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, string, float64) error); ok {
+		r0 = rf(ctx, userID, orderNumber, sum)
 	} else {
 		r0 = ret.Error(0)
 	}

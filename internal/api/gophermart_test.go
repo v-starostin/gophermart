@@ -80,8 +80,8 @@ func (suite *apiTestSuite) TestRegisterUser() {
 
 		rr := httptest.NewRecorder()
 
-		suite.service.On("RegisterUser", u.Login, u.Password).Once().Return(nil)
-		suite.service.On("Authenticate", u.Login, u.Password).Once().Return("token", nil)
+		suite.service.On("RegisterUser", mmock.Anything, u.Login, u.Password).Once().Return(nil)
+		suite.service.On("Authenticate", mmock.Anything, u.Login, u.Password).Once().Return("token", nil)
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
 		defer res.Body.Close()
@@ -100,7 +100,7 @@ func (suite *apiTestSuite) TestRegisterUser() {
 			Code: pq.ErrorCode("23505"),
 		}
 
-		suite.service.On("RegisterUser", u.Login, u.Password).Once().Return(pqErr)
+		suite.service.On("RegisterUser", mmock.Anything, u.Login, u.Password).Once().Return(pqErr)
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
 		defer res.Body.Close()
@@ -125,7 +125,7 @@ func (suite *apiTestSuite) TestRegisterUser() {
 
 		rr := httptest.NewRecorder()
 
-		suite.service.On("RegisterUser", u.Login, u.Password).Once().Return(errors.New("RegisterUser err"))
+		suite.service.On("RegisterUser", mmock.Anything, u.Login, u.Password).Once().Return(errors.New("RegisterUser err"))
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
 		defer res.Body.Close()
@@ -150,8 +150,8 @@ func (suite *apiTestSuite) TestRegisterUser() {
 
 		rr := httptest.NewRecorder()
 
-		suite.service.On("RegisterUser", u.Login, u.Password).Once().Return(nil)
-		suite.service.On("Authenticate", u.Login, u.Password).Once().Return("", errors.New("Authenticate err"))
+		suite.service.On("RegisterUser", mmock.Anything, u.Login, u.Password).Once().Return(nil)
+		suite.service.On("Authenticate", mmock.Anything, u.Login, u.Password).Once().Return("", errors.New("Authenticate err"))
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
 		defer res.Body.Close()
@@ -185,7 +185,7 @@ func (suite *apiTestSuite) TestLoginUser() {
 
 		rr := httptest.NewRecorder()
 
-		suite.service.On("Authenticate", u.Login, u.Password).Once().Return("token", nil)
+		suite.service.On("Authenticate", mmock.Anything, u.Login, u.Password).Once().Return("token", nil)
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
 		defer res.Body.Close()
@@ -200,7 +200,7 @@ func (suite *apiTestSuite) TestLoginUser() {
 
 		rr := httptest.NewRecorder()
 
-		suite.service.On("Authenticate", u.Login, u.Password).Once().Return("", sql.ErrNoRows)
+		suite.service.On("Authenticate", mmock.Anything, u.Login, u.Password).Once().Return("", sql.ErrNoRows)
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
 		defer res.Body.Close()
@@ -225,7 +225,7 @@ func (suite *apiTestSuite) TestLoginUser() {
 
 		rr := httptest.NewRecorder()
 
-		suite.service.On("Authenticate", u.Login, u.Password).Once().Return("", errors.New("Authenticate err"))
+		suite.service.On("Authenticate", mmock.Anything, u.Login, u.Password).Once().Return("", errors.New("Authenticate err"))
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
 		defer res.Body.Close()
@@ -247,7 +247,7 @@ func (suite *apiTestSuite) TestLoginUser() {
 func (suite *apiTestSuite) TestGetBalance() {
 	userID, err := uuid.NewRandom()
 	suite.NoError(err)
-	ctx := context.WithValue(context.Background(), api.KeyUserID, userID)
+	ctx := api.NewContext(context.Background(), userID)
 
 	suite.Run("Get balance", func() {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, getBalance, nil)
@@ -255,7 +255,7 @@ func (suite *apiTestSuite) TestGetBalance() {
 
 		rr := httptest.NewRecorder()
 
-		suite.service.On("GetBalance", userID).Once().Return(12.32, 5.04, nil)
+		suite.service.On("GetBalance", mmock.Anything, userID).Once().Return(12.32, 5.04, nil)
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
 		defer res.Body.Close()
@@ -280,7 +280,7 @@ func (suite *apiTestSuite) TestGetBalance() {
 
 		rr := httptest.NewRecorder()
 
-		suite.service.On("GetBalance", userID).Once().Return(0.0, 0.0, sql.ErrNoRows)
+		suite.service.On("GetBalance", mmock.Anything, userID).Once().Return(0.0, 0.0, sql.ErrNoRows)
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
 		defer res.Body.Close()
@@ -305,7 +305,7 @@ func (suite *apiTestSuite) TestGetBalance() {
 
 		rr := httptest.NewRecorder()
 
-		suite.service.On("GetBalance", userID).Once().Return(0.0, 0.0, errors.New("GetBalance err"))
+		suite.service.On("GetBalance", mmock.Anything, userID).Once().Return(0.0, 0.0, errors.New("GetBalance err"))
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
 		defer res.Body.Close()
@@ -327,7 +327,7 @@ func (suite *apiTestSuite) TestGetBalance() {
 func (suite *apiTestSuite) TestGetWithdrawals() {
 	userID, err := uuid.NewRandom()
 	suite.NoError(err)
-	ctx := context.WithValue(context.Background(), api.KeyUserID, userID)
+	ctx := api.NewContext(context.Background(), userID)
 
 	suite.Run("Get withdrawals", func() {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, getWithdrawals, nil)
@@ -340,7 +340,7 @@ func (suite *apiTestSuite) TestGetWithdrawals() {
 			{Order: "2006", Sum: 1024.0, ProcessedAt: time.Date(2024, time.January, 2, 2, 2, 0, 0, time.UTC)},
 		}
 
-		suite.service.On("GetWithdrawals", userID).Once().Return(withdrawals, nil)
+		suite.service.On("GetWithdrawals", mmock.Anything, userID).Once().Return(withdrawals, nil)
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
 		defer res.Body.Close()
@@ -370,7 +370,7 @@ func (suite *apiTestSuite) TestGetWithdrawals() {
 
 		rr := httptest.NewRecorder()
 
-		suite.service.On("GetWithdrawals", userID).Once().Return(nil, sql.ErrNoRows)
+		suite.service.On("GetWithdrawals", mmock.Anything, userID).Once().Return(nil, sql.ErrNoRows)
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
 		defer res.Body.Close()
@@ -384,7 +384,7 @@ func (suite *apiTestSuite) TestGetWithdrawals() {
 
 		rr := httptest.NewRecorder()
 
-		suite.service.On("GetWithdrawals", userID).Once().Return(nil, errors.New("GetWithdrawals err"))
+		suite.service.On("GetWithdrawals", mmock.Anything, userID).Once().Return(nil, errors.New("GetWithdrawals err"))
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
 		defer res.Body.Close()
@@ -406,7 +406,7 @@ func (suite *apiTestSuite) TestGetWithdrawals() {
 func (suite *apiTestSuite) TestGetOrders() {
 	userID, err := uuid.NewRandom()
 	suite.NoError(err)
-	ctx := context.WithValue(context.Background(), api.KeyUserID, userID)
+	ctx := api.NewContext(context.Background(), userID)
 
 	suite.Run("Get orders", func() {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, getOrders, nil)
@@ -419,7 +419,7 @@ func (suite *apiTestSuite) TestGetOrders() {
 			{Number: "2006", Accrual: 1024.0, Status: "PROCESSED", UploadedAt: time.Date(2024, time.January, 2, 1, 1, 1, 0, time.UTC)},
 		}
 
-		suite.service.On("GetOrders", userID).Once().Return(orders, nil)
+		suite.service.On("GetOrders", mmock.Anything, userID).Once().Return(orders, nil)
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
 		defer res.Body.Close()
@@ -450,7 +450,7 @@ func (suite *apiTestSuite) TestGetOrders() {
 
 		rr := httptest.NewRecorder()
 
-		suite.service.On("GetOrders", userID).Once().Return(nil, sql.ErrNoRows)
+		suite.service.On("GetOrders", mmock.Anything, userID).Once().Return(nil, sql.ErrNoRows)
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
 		defer res.Body.Close()
@@ -464,7 +464,7 @@ func (suite *apiTestSuite) TestGetOrders() {
 
 		rr := httptest.NewRecorder()
 
-		suite.service.On("GetOrders", userID).Once().Return(nil, errors.New("GetOrders err"))
+		suite.service.On("GetOrders", mmock.Anything, userID).Once().Return(nil, errors.New("GetOrders err"))
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
 		defer res.Body.Close()
@@ -486,7 +486,7 @@ func (suite *apiTestSuite) TestGetOrders() {
 func (suite *apiTestSuite) TestUploadOrder() {
 	userID, err := uuid.NewRandom()
 	suite.NoError(err)
-	ctx := context.WithValue(context.Background(), api.KeyUserID, userID)
+	ctx := api.NewContext(context.Background(), userID)
 
 	suite.Run("Upload order", func() {
 		req, err := http.NewRequestWithContext(ctx, http.MethodPost, uploadOrder, strings.NewReader("125"))
@@ -494,7 +494,7 @@ func (suite *apiTestSuite) TestUploadOrder() {
 		req.Header.Add("Content-Type", "text/plain")
 		rr := httptest.NewRecorder()
 
-		suite.service.On("UploadOrder", userID, mmock.Anything).Once().Return(nil)
+		suite.service.On("UploadOrder", mmock.Anything, userID, mmock.Anything).Once().Return(nil)
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
 		defer res.Body.Close()
@@ -537,7 +537,7 @@ func (suite *apiTestSuite) TestUploadOrder() {
 			Code: "23505",
 		}
 
-		suite.service.On("UploadOrder", userID, mmock.Anything).Once().Return(pqErr)
+		suite.service.On("UploadOrder", mmock.Anything, userID, mmock.Anything).Once().Return(pqErr)
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
 		defer res.Body.Close()
@@ -562,7 +562,7 @@ func (suite *apiTestSuite) TestUploadOrder() {
 
 		rr := httptest.NewRecorder()
 
-		suite.service.On("UploadOrder", userID, mmock.Anything).Once().Return(service.ErrOrderAlreadyExists)
+		suite.service.On("UploadOrder", mmock.Anything, userID, mmock.Anything).Once().Return(service.ErrOrderAlreadyExists)
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
 		defer res.Body.Close()
@@ -577,7 +577,7 @@ func (suite *apiTestSuite) TestUploadOrder() {
 
 		rr := httptest.NewRecorder()
 
-		suite.service.On("UploadOrder", userID, mmock.Anything).Once().Return(errors.New("UploadOrder err"))
+		suite.service.On("UploadOrder", mmock.Anything, userID, mmock.Anything).Once().Return(errors.New("UploadOrder err"))
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
 		defer res.Body.Close()
@@ -599,6 +599,7 @@ func (suite *apiTestSuite) TestUploadOrder() {
 func (suite *apiTestSuite) TestWithdrawalRequest() {
 	userID, err := uuid.NewRandom()
 	suite.NoError(err)
+	ctx := api.NewContext(context.Background(), userID)
 
 	processedAt := time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC)
 	withdrawal := api.WithdrawalRequestJSONRequestBody{
@@ -610,14 +611,14 @@ func (suite *apiTestSuite) TestWithdrawalRequest() {
 	suite.NoError(err)
 
 	suite.Run("Withdrawal request", func() {
-		ctx := context.WithValue(context.Background(), api.KeyUserID, userID)
+		//ctx := context.WithValue(context.Background(), api.KeyUserID, userID)
 		req, err := http.NewRequestWithContext(ctx, http.MethodPost, withdrawalReq, bytes.NewReader(b))
 		suite.NoError(err)
 		req.Header.Add("Content-Type", "application/json")
 
 		rr := httptest.NewRecorder()
 
-		suite.service.On("WithdrawalRequest", userID, withdrawal.Order, withdrawal.Sum).Once().Return(nil)
+		suite.service.On("WithdrawalRequest", mmock.Anything, userID, withdrawal.Order, withdrawal.Sum).Once().Return(nil)
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
 		defer res.Body.Close()
@@ -634,7 +635,7 @@ func (suite *apiTestSuite) TestWithdrawalRequest() {
 		b, err := json.Marshal(w)
 		suite.NoError(err)
 
-		ctx := context.WithValue(context.Background(), api.KeyUserID, userID)
+		//ctx := context.WithValue(context.Background(), api.KeyUserID, userID)
 		req, err := http.NewRequestWithContext(ctx, http.MethodPost, withdrawalReq, bytes.NewReader(b))
 		suite.NoError(err)
 		req.Header.Add("Content-Type", "application/json")
@@ -659,14 +660,14 @@ func (suite *apiTestSuite) TestWithdrawalRequest() {
 	})
 
 	suite.Run("Insufficient balance", func() {
-		ctx := context.WithValue(context.Background(), api.KeyUserID, userID)
+		//ctx := context.WithValue(context.Background(), api.KeyUserID, userID)
 		req, err := http.NewRequestWithContext(ctx, http.MethodPost, withdrawalReq, bytes.NewReader(b))
 		suite.NoError(err)
 		req.Header.Add("Content-Type", "application/json")
 
 		rr := httptest.NewRecorder()
 
-		suite.service.On("WithdrawalRequest", userID, withdrawal.Order, withdrawal.Sum).Once().Return(storage.ErrInsufficientBalance)
+		suite.service.On("WithdrawalRequest", mmock.Anything, userID, withdrawal.Order, withdrawal.Sum).Once().Return(storage.ErrInsufficientBalance)
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
 		defer res.Body.Close()
@@ -685,14 +686,14 @@ func (suite *apiTestSuite) TestWithdrawalRequest() {
 	})
 
 	suite.Run("Internal server error", func() {
-		ctx := context.WithValue(context.Background(), api.KeyUserID, userID)
+		//ctx := context.WithValue(context.Background(), api.KeyUserID, userID)
 		req, err := http.NewRequestWithContext(ctx, http.MethodPost, withdrawalReq, bytes.NewReader(b))
 		suite.NoError(err)
 		req.Header.Add("Content-Type", "application/json")
 
 		rr := httptest.NewRecorder()
 
-		suite.service.On("WithdrawalRequest", userID, withdrawal.Order, withdrawal.Sum).Once().Return(errors.New("WithdrawalRequest err"))
+		suite.service.On("WithdrawalRequest", mmock.Anything, userID, withdrawal.Order, withdrawal.Sum).Once().Return(errors.New("WithdrawalRequest err"))
 		suite.r.ServeHTTP(rr, req)
 		res := rr.Result()
 		defer res.Body.Close()

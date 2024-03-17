@@ -1,10 +1,14 @@
 package storage
 
 import (
+	"context"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
 	"errors"
+	"log/slog"
+	"sync"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -14,99 +18,124 @@ import (
 var ErrInsufficientBalance = errors.New("insufficient balance")
 
 type Storage struct {
+	l  *slog.Logger
 	db *sql.DB
 }
 
-func New(db *sql.DB) *Storage {
-	return &Storage{db}
+func New(l *slog.Logger, db *sql.DB) *Storage {
+	return &Storage{l, db}
 }
 
-func (s *Storage) WithdrawalRequest(userID uuid.UUID, orderNumber string, sum float64) error {
+func (s *Storage) WithdrawalRequest(ctx context.Context, userID uuid.UUID, orderNumber string, sum float64) error {
 	withdrawID, err := uuid.NewRandom()
 	if err != nil {
 		return err
 	}
 
 	query := "INSERT INTO withdrawals (id, user_id, order_number, sum) VALUES ($1, $2, $3, $4)"
-	if _, err := s.db.Exec(query, withdrawID, userID, orderNumber, sum); err != nil {
+	if _, err = s.db.ExecContext(ctx, query, withdrawID, userID, orderNumber, sum); err != nil {
 		return err
 	}
 
-	tx, err := s.db.Begin()
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 
 	var balance float64
-	err = tx.QueryRow("SELECT balance FROM balances WHERE user_id = $1", userID).Scan(&balance)
-	if err != nil {
-		tx.Rollback()
+	if err = tx.QueryRowContext(ctx, "SELECT balance FROM balances WHERE user_id = $1 FOR UPDATE;", userID).Scan(&balance); err != nil {
+		_ = tx.Rollback()
 		return err
 	}
 
 	balance -= sum
 	if balance < 0 {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return ErrInsufficientBalance
 	}
-	_, err = tx.Exec("UPDATE balances SET balance = $1 WHERE user_id = $2", balance, userID)
-	if err != nil {
+
+	if _, err = tx.ExecContext(ctx, "UPDATE balances SET balance = $1 WHERE user_id = $2", balance, userID); err != nil {
 		return err
 	}
 
 	query = "UPDATE withdraw_balances SET sum = (SELECT sum + $1 FROM withdraw_balances WHERE user_id = $2) WHERE user_id = $3"
-	_, err = tx.Exec(query, sum, userID, userID)
-	if err != nil {
-		tx.Rollback()
+	if _, err = tx.ExecContext(ctx, query, sum, userID, userID); err != nil {
+		_ = tx.Rollback()
 		return err
 	}
 
-	_, err = tx.Exec("UPDATE withdrawals SET status = $1 WHERE order_number = $2", "SUCCESS", orderNumber)
-	if err != nil {
-		tx.Rollback()
+	if _, err = tx.ExecContext(ctx, "UPDATE withdrawals SET status = $1 WHERE order_number = $2", "SUCCESS", orderNumber); err != nil {
+		_ = tx.Rollback()
 		return err
 	}
 
-	tx.Commit()
+	if err = tx.Commit(); err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func (s *Storage) AddOrder(userID uuid.UUID, order model.Order) error {
+func (s *Storage) AddOrder(ctx context.Context, userID uuid.UUID, order model.Order) error {
 	orderID, err := uuid.NewRandom()
 	if err != nil {
 		return err
 	}
 
-	tx, err := s.db.Begin()
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 
 	query := "INSERT INTO orders (id, user_id, order_number, status, accrual) VALUES ($1, $2, $3, $4, $5)"
-	_, err = tx.Exec(query, orderID, userID, order.Number, order.Status, order.Accrual)
-	if err != nil {
-		tx.Rollback()
+	if _, err = tx.ExecContext(ctx, query, orderID, userID, order.Number, order.Status, order.Accrual); err != nil {
+		_ = tx.Rollback()
 		return err
 	}
 
 	if order.Status == "PROCESSED" {
-		query = "UPDATE balances SET balance = (SELECT balance + $1 FROM balances WHERE user_id = $2)"
-		_, err = tx.Exec(query, order.Accrual, userID)
-		if err != nil {
-			tx.Rollback()
+		query = "UPDATE balances SET balance = (SELECT balance + $1 FROM balances WHERE user_id = $2) WHERE user_id = $3"
+		if _, err = tx.ExecContext(ctx, query, order.Accrual, userID, userID); err != nil {
+			_ = tx.Rollback()
 			return err
 		}
 	}
 
-	tx.Commit()
+	if err = tx.Commit(); err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func (s *Storage) GetWithdrawals(userID uuid.UUID) ([]model.Withdrawal, error) {
+func (s *Storage) UpdateOrder(ctx context.Context, userID uuid.UUID, order model.Order) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	query := "UPDATE orders SET status = $1, accrual = $2, uploaded_at = $3 WHERE user_id = $4 AND order_number = $5"
+	if _, err = tx.ExecContext(ctx, query, order.Status, order.Accrual, time.Now().UTC(), userID, order.Number); err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+
+	query = "UPDATE balances SET balance = (SELECT balance + $1 FROM balances WHERE user_id = $2) WHERE user_id = $3"
+	if _, err = tx.ExecContext(ctx, query, order.Accrual, userID, userID); err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Storage) GetWithdrawals(ctx context.Context, userID uuid.UUID) ([]model.Withdrawal, error) {
 	query := "SELECT order_number, sum, processed_at FROM withdrawals WHERE user_id = $1 AND status = $2"
-	raws, err := s.db.Query(query, userID, "SUCCESS")
+	raws, err := s.db.QueryContext(ctx, query, userID, "SUCCESS")
 	if err != nil {
 		return nil, err
 	}
@@ -122,32 +151,31 @@ func (s *Storage) GetWithdrawals(userID uuid.UUID) ([]model.Withdrawal, error) {
 		withdrawals = append(withdrawals, w)
 	}
 
-	err = raws.Err()
-	if err != nil {
+	if err = raws.Err(); err != nil {
 		return nil, err
 	}
 
 	return withdrawals, nil
 }
 
-func (s *Storage) GetBalance(userID uuid.UUID) (float64, float64, error) {
+func (s *Storage) GetBalance(ctx context.Context, userID uuid.UUID) (float64, float64, error) {
 	var balance float64
-	if err := s.db.QueryRow("SELECT balance FROM balances WHERE user_id = $1", userID).Scan(&balance); err != nil {
+	if err := s.db.QueryRowContext(ctx, "SELECT balance FROM balances WHERE user_id = $1", userID).Scan(&balance); err != nil {
 		return 0, 0, err
 	}
 
 	var withdrawn float64
-	if err := s.db.QueryRow("SELECT sum FROM withdraw_balances WHERE user_id = $1", userID).Scan(&withdrawn); err != nil {
+	if err := s.db.QueryRowContext(ctx, "SELECT sum FROM withdraw_balances WHERE user_id = $1", userID).Scan(&withdrawn); err != nil {
 		return 0, 0, err
 	}
 
 	return balance, withdrawn, nil
 }
 
-func (s *Storage) GetOrder(userID uuid.UUID, orderNumber string) (*model.Order, error) {
+func (s *Storage) GetOrder(ctx context.Context, userID uuid.UUID, orderNumber string) (*model.Order, error) {
 	var number string
 	query := "SELECT order_number FROM orders WHERE user_id = $1 AND order_number = $2"
-	if err := s.db.QueryRow(query, userID, orderNumber).Scan(&number); err != nil {
+	if err := s.db.QueryRowContext(ctx, query, userID, orderNumber).Scan(&number); err != nil {
 		return nil, err
 	}
 
@@ -156,9 +184,9 @@ func (s *Storage) GetOrder(userID uuid.UUID, orderNumber string) (*model.Order, 
 	}, nil
 }
 
-func (s *Storage) GetOrders(userID uuid.UUID) ([]model.Order, error) {
+func (s *Storage) GetOrders(ctx context.Context, userID uuid.UUID) ([]model.Order, error) {
 	query := "SELECT order_number, status, accrual, uploaded_at FROM orders WHERE user_id = $1"
-	raws, err := s.db.Query(query, userID)
+	raws, err := s.db.QueryContext(ctx, query, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -174,52 +202,53 @@ func (s *Storage) GetOrders(userID uuid.UUID) ([]model.Order, error) {
 		orders = append(orders, o)
 	}
 
-	err = raws.Err()
-	if err != nil {
+	if err = raws.Err(); err != nil {
 		return nil, err
 	}
 
 	return orders, nil
 }
 
-func (s *Storage) AddUser(login, password string) error {
+func (s *Storage) AddUser(ctx context.Context, login, password string) error {
 	userID, err := uuid.NewRandom()
 	if err != nil {
 		return err
 	}
 
-	tx, err := s.db.Begin()
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 
 	_, err = tx.Exec("INSERT INTO users (id, login, password) VALUES ($1, $2, $3)", userID, login, hash(password))
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
 
 	_, err = tx.Exec("INSERT INTO balances (user_id) VALUES ($1)", userID)
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
 
 	_, err = tx.Exec("INSERT INTO withdraw_balances (user_id) VALUES ($1)", userID)
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
 
-	tx.Commit()
+	if err = tx.Commit(); err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func (s *Storage) GetUser(login, password string) (*model.User, error) {
+func (s *Storage) GetUser(ctx context.Context, login, password string) (*model.User, error) {
 	var u model.User
 	query := "SELECT id, login, password FROM users WHERE login = $1 AND password = $2"
-	if err := s.db.QueryRow(query, login, hash(password)).Scan(&u.ID, &u.Login, &u.Password); err != nil {
+	if err := s.db.QueryRowContext(ctx, query, login, hash(password)).Scan(&u.ID, &u.Login, &u.Password); err != nil {
 		return nil, err
 	}
 
@@ -229,4 +258,51 @@ func (s *Storage) GetUser(login, password string) (*model.User, error) {
 func hash(data string) string {
 	hash := sha256.Sum256([]byte(data))
 	return hex.EncodeToString(hash[:])
+}
+
+func (s *Storage) ScanOrders(ctx context.Context) <-chan model.Order {
+	ch := make(chan model.Order)
+	wg := &sync.WaitGroup{}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for {
+			select {
+			case <-time.After(5 * time.Second):
+				s.l.Info("Scanning orders")
+				query := "SELECT order_number, status, user_id FROM orders WHERE status != $1 AND status != $2"
+				raws, err := s.db.QueryContext(ctx, query, "PROCESSED", "INVALID")
+				if err != nil {
+					s.l.Info("Scanning orders error", slog.String("error", err.Error()))
+					continue
+				}
+				defer raws.Close()
+
+				var o model.Order
+				for raws.Next() {
+					if err = raws.Scan(&o.Number, &o.Status, &o.UserID); err != nil {
+						s.l.Info("Scanning orders error", slog.String("error", err.Error()))
+						continue
+					}
+					ch <- o
+				}
+				if err = raws.Err(); err != nil {
+					s.l.Info("Scanning orders error", slog.String("error", err.Error()))
+					continue
+				}
+			case <-ctx.Done():
+				s.l.Info("Scanning orders stopped")
+				return
+			}
+		}
+	}()
+
+	go func() {
+		wg.Wait()
+		s.l.Info("Closing channel")
+		close(ch)
+	}()
+
+	return ch
 }

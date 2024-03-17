@@ -62,7 +62,7 @@ func ConnectDB(cfg *config.Config) (*sql.DB, error) {
 		return nil, err
 	}
 
-	if err := db.Ping(); err != nil {
+	if err = db.Ping(); err != nil {
 		return nil, err
 	}
 
@@ -76,7 +76,7 @@ func ConnectDB(cfg *config.Config) (*sql.DB, error) {
 		return nil, err
 	}
 
-	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+	if err = m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		return nil, err
 	}
 
@@ -100,8 +100,8 @@ func Run() {
 	defer db.Close()
 
 	client := &http.Client{}
-	repo := storage.New(db)
-	svc := service.New(repo, client, []byte(cfg.Secret), cfg.AccrualAddress)
+	repo := storage.New(logger, db)
+	svc := service.New(logger, repo, client, []byte(cfg.Secret), cfg.AccrualAddress)
 
 	server := NewServer(logger, cfg.Address)
 	server.RegisterHandlers(cfg, svc)
@@ -113,8 +113,11 @@ func Run() {
 	wg.Add(1)
 	go server.HandleShutdown(ctx, &wg)
 
+	orders := repo.ScanOrders(ctx)
+	go svc.FetchOrders(ctx, orders)
+
 	logger.Info("Server is listening on", slog.String("address", cfg.Address))
-	if err := server.ListenAndServe(cfg); err != nil && !errors.Is(err, http.ErrServerClosed) {
+	if err = server.ListenAndServe(cfg); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		logger.Info("Starting server error", slog.String("error", err.Error()))
 		return
 	}

@@ -2,11 +2,14 @@ package service_test
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
 	"io"
+	"log/slog"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 
@@ -27,9 +30,10 @@ type serviceTestSuite struct {
 }
 
 func (s *serviceTestSuite) SetupTest() {
+	l := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	storage := &mock.Storage{}
 	client := &mock.HTTPClient{}
-	srv := service.New(storage, client, []byte("secret"), "http://example.com")
+	srv := service.New(l, storage, client, []byte("secret"), "http://example.com")
 	s.service = srv
 	s.storage = storage
 	s.client = client
@@ -60,9 +64,9 @@ func (s *serviceTestSuite) TestGetWithdrawals() {
 
 	for _, test := range tt {
 		s.Run(test.name, func() {
-			s.storage.On("GetWithdrawals", userID).Return(test.withdrawals, test.err).Once()
+			s.storage.On("GetWithdrawals", mmock.Anything, userID).Return(test.withdrawals, test.err).Once()
 
-			got, err := s.service.GetWithdrawals(userID)
+			got, err := s.service.GetWithdrawals(context.Background(), userID)
 			if test.err != nil {
 				s.EqualError(err, test.err.Error())
 			} else {
@@ -96,9 +100,9 @@ func (s *serviceTestSuite) TestGetBalance() {
 
 	for _, test := range tt {
 		s.Run(test.name, func() {
-			s.storage.On("GetBalance", userID).Return(test.balance, test.withdraw, test.err).Once()
+			s.storage.On("GetBalance", mmock.Anything, userID).Return(test.balance, test.withdraw, test.err).Once()
 
-			gotBalance, gotWithdraw, err := s.service.GetBalance(userID)
+			gotBalance, gotWithdraw, err := s.service.GetBalance(context.Background(), userID)
 			if test.err != nil {
 				s.EqualError(err, test.err.Error())
 				s.Equal(0.0, gotBalance)
@@ -136,9 +140,9 @@ func (s *serviceTestSuite) TestGetOrders() {
 
 	for _, test := range tt {
 		s.Run(test.name, func() {
-			s.storage.On("GetOrders", userID).Return(test.orders, test.err).Once()
+			s.storage.On("GetOrders", mmock.Anything, userID).Return(test.orders, test.err).Once()
 
-			got, err := s.service.GetOrders(userID)
+			got, err := s.service.GetOrders(context.Background(), userID)
 			if test.err != nil {
 				s.EqualError(err, test.err.Error())
 			} else {
@@ -172,9 +176,9 @@ func (s *serviceTestSuite) TestWithdrawalRequest() {
 
 	for _, test := range tt {
 		s.Run(test.name, func() {
-			s.storage.On("WithdrawalRequest", userID, test.orderNumber, test.sum).Return(test.err).Once()
+			s.storage.On("WithdrawalRequest", mmock.Anything, userID, test.orderNumber, test.sum).Return(test.err).Once()
 
-			err = s.service.WithdrawalRequest(userID, test.orderNumber, test.sum)
+			err = s.service.WithdrawalRequest(context.Background(), userID, test.orderNumber, test.sum)
 			if test.err != nil {
 				s.EqualError(err, test.err.Error())
 			} else {
@@ -204,9 +208,9 @@ func (s *serviceTestSuite) TestAuthenticate() {
 
 	for _, test := range tt {
 		s.Run(test.name, func() {
-			s.storage.On("GetUser", login, password).Return(test.user, test.err).Once()
+			s.storage.On("GetUser", mmock.Anything, login, password).Return(test.user, test.err).Once()
 
-			_, err := s.service.Authenticate(login, password)
+			_, err := s.service.Authenticate(context.Background(), login, password)
 			if test.err != nil {
 				s.EqualError(err, test.err.Error())
 			} else {
@@ -236,9 +240,9 @@ func (s *serviceTestSuite) TestRegisterUser() {
 
 	for _, test := range tt {
 		s.Run(test.name, func() {
-			s.storage.On("AddUser", login, password).Return(test.err).Once()
+			s.storage.On("AddUser", mmock.Anything, login, password).Return(test.err).Once()
 
-			err := s.service.RegisterUser(login, password)
+			err := s.service.RegisterUser(context.Background(), login, password)
 			if test.err != nil {
 				s.EqualError(err, test.err.Error())
 			} else {
@@ -254,8 +258,8 @@ func (s *serviceTestSuite) TestUploadOrder() {
 	s.NoError(err)
 
 	s.Run("order already exists for current user", func() {
-		s.storage.On("GetOrder", userID, orderNumber).Once().Return(nil, service.ErrOrderAlreadyExists)
-		err = s.service.UploadOrder(userID, orderNumber)
+		s.storage.On("GetOrder", mmock.Anything, userID, orderNumber).Once().Return(nil, service.ErrOrderAlreadyExists)
+		err = s.service.UploadOrder(context.Background(), userID, orderNumber)
 		s.EqualError(err, service.ErrOrderAlreadyExists.Error())
 	})
 
@@ -272,46 +276,42 @@ func (s *serviceTestSuite) TestUploadOrder() {
 			Body:       io.NopCloser(bytes.NewReader(respBody)),
 		}
 
-		s.storage.On("GetOrder", userID, orderNumber).Once().Return(nil, sql.ErrNoRows)
+		s.storage.On("GetOrder", mmock.Anything, userID, orderNumber).Once().Return(nil, sql.ErrNoRows)
 		s.client.On("Do", mmock.Anything).Once().Return(res, nil)
-		s.storage.On("AddOrder", userID, *order).Once().Return(nil)
+		s.storage.On("AddOrder", mmock.Anything, userID, *order).Once().Return(nil)
 
-		err = s.service.UploadOrder(userID, orderNumber)
+		err = s.service.UploadOrder(context.Background(), userID, orderNumber)
 		s.NoError(err)
 	})
 
-	s.Run("order is not processed by accrual service", func() {
-		res := &http.Response{
-			StatusCode: http.StatusNoContent,
-			Body:       io.NopCloser(strings.NewReader(`{}`)),
-		}
-
-		s.storage.On("GetOrder", userID, orderNumber).Once().Return(nil, sql.ErrNoRows)
-		s.client.On("Do", mmock.Anything).Once().Return(res, nil)
-		s.storage.On("AddOrder", userID, mmock.Anything).Once().Return(nil)
-
-		err = s.service.UploadOrder(userID, orderNumber)
-		s.NoError(err)
-	})
-
-	s.Run("error to fetch order info, status 500", func() {
+	s.Run("error to fetch order, status 500", func() {
 		res := &http.Response{
 			StatusCode: http.StatusInternalServerError,
 			Body:       io.NopCloser(strings.NewReader(`{}`)),
 		}
+		o := model.Order{
+			Number: orderNumber,
+			Status: "NEW",
+		}
 
-		s.storage.On("GetOrder", userID, orderNumber).Once().Return(nil, sql.ErrNoRows)
+		s.storage.On("GetOrder", mmock.Anything, userID, orderNumber).Once().Return(nil, sql.ErrNoRows)
 		s.client.On("Do", mmock.Anything).Once().Return(res, nil)
+		s.storage.On("AddOrder", mmock.Anything, userID, o).Once().Return(nil)
 
-		err = s.service.UploadOrder(userID, orderNumber)
-		s.EqualError(err, "failed to fetch order info, status code 500")
+		err = s.service.UploadOrder(context.Background(), userID, orderNumber)
+		s.NoError(err)
 	})
 
 	s.Run("error to fetch order info, client error", func() {
-		s.storage.On("GetOrder", userID, orderNumber).Once().Return(nil, sql.ErrNoRows)
+		o := model.Order{
+			Number: orderNumber,
+			Status: "NEW",
+		}
+		s.storage.On("GetOrder", mmock.Anything, userID, orderNumber).Once().Return(nil, sql.ErrNoRows)
 		s.client.On("Do", mmock.Anything).Once().Return(nil, errors.New("client err"))
+		s.storage.On("AddOrder", mmock.Anything, userID, o).Once().Return(nil)
 
-		err = s.service.UploadOrder(userID, orderNumber)
-		s.EqualError(err, "client err")
+		err = s.service.UploadOrder(context.Background(), userID, orderNumber)
+		s.NoError(err)
 	})
 }

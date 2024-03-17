@@ -19,13 +19,13 @@ import (
 )
 
 type Service interface {
-	RegisterUser(login, password string) error
-	Authenticate(login, password string) (string, error)
-	UploadOrder(userID uuid.UUID, orderNumber string) error
-	GetOrders(userID uuid.UUID) ([]model.Order, error)
-	WithdrawalRequest(userID uuid.UUID, orderNumber string, sum float64) error
-	GetBalance(userID uuid.UUID) (float64, float64, error)
-	GetWithdrawals(userID uuid.UUID) ([]model.Withdrawal, error)
+	RegisterUser(ctx context.Context, login, password string) error
+	Authenticate(ctx context.Context, login, password string) (string, error)
+	UploadOrder(ctx context.Context, userID uuid.UUID, orderNumber string) error
+	GetOrders(ctx context.Context, userID uuid.UUID) ([]model.Order, error)
+	WithdrawalRequest(ctx context.Context, userID uuid.UUID, orderNumber string, sum float64) error
+	GetBalance(ctx context.Context, userID uuid.UUID) (float64, float64, error)
+	GetWithdrawals(ctx context.Context, userID uuid.UUID) ([]model.Withdrawal, error)
 }
 
 type Gophermart struct {
@@ -45,7 +45,7 @@ func NewGophermart(logger *slog.Logger, service Service, secret []byte) *Gopherm
 }
 
 func (g *Gophermart) RegisterUser(ctx context.Context, request RegisterUserRequestObject) (RegisterUserResponseObject, error) {
-	err := g.service.RegisterUser(request.Body.Login, request.Body.Password)
+	err := g.service.RegisterUser(ctx, request.Body.Login, request.Body.Password)
 	if err != nil {
 		g.logger.Info("Register user error", slog.String("error", err.Error()))
 		var pqErr *pq.Error
@@ -62,7 +62,7 @@ func (g *Gophermart) RegisterUser(ctx context.Context, request RegisterUserReque
 		}, nil
 	}
 
-	token, err := g.service.Authenticate(request.Body.Login, request.Body.Password)
+	token, err := g.service.Authenticate(ctx, request.Body.Login, request.Body.Password)
 	if err != nil {
 		g.logger.Info("Authentication error", slog.String("error", err.Error()))
 		return RegisterUser500JSONResponse{
@@ -78,7 +78,7 @@ func (g *Gophermart) RegisterUser(ctx context.Context, request RegisterUserReque
 }
 
 func (g *Gophermart) LoginUser(ctx context.Context, request LoginUserRequestObject) (LoginUserResponseObject, error) {
-	token, err := g.service.Authenticate(request.Body.Login, request.Body.Password)
+	token, err := g.service.Authenticate(ctx, request.Body.Login, request.Body.Password)
 	if err != nil {
 		g.logger.Info("Authentication error", slog.String("error", err.Error()))
 		if errors.Is(err, sql.ErrNoRows) {
@@ -99,10 +99,10 @@ func (g *Gophermart) LoginUser(ctx context.Context, request LoginUserRequestObje
 	}, nil
 }
 
-func (g *Gophermart) GetOrders(ctx context.Context, request GetOrdersRequestObject) (GetOrdersResponseObject, error) {
-	userID := ctx.Value(KeyUserID).(uuid.UUID)
+func (g *Gophermart) GetOrders(ctx context.Context, _ GetOrdersRequestObject) (GetOrdersResponseObject, error) {
+	userID := FromContext(ctx)
 
-	orders, err := g.service.GetOrders(userID)
+	orders, err := g.service.GetOrders(ctx, userID)
 	if err != nil {
 		g.logger.Info("Get orders error", slog.String("error", err.Error()))
 		if errors.Is(err, sql.ErrNoRows) {
@@ -129,7 +129,7 @@ func (g *Gophermart) GetOrders(ctx context.Context, request GetOrdersRequestObje
 }
 
 func (g *Gophermart) UploadOrder(ctx context.Context, request UploadOrderRequestObject) (UploadOrderResponseObject, error) {
-	userID := ctx.Value(KeyUserID).(uuid.UUID)
+	userID := FromContext(ctx)
 
 	if valid := luhn.IsValid(*request.Body); !valid {
 		return UploadOrder422JSONResponse{
@@ -137,7 +137,7 @@ func (g *Gophermart) UploadOrder(ctx context.Context, request UploadOrderRequest
 		}, nil
 	}
 
-	if err := g.service.UploadOrder(userID, *request.Body); err != nil {
+	if err := g.service.UploadOrder(ctx, userID, *request.Body); err != nil {
 		g.logger.Info("Upload order error", slog.String("error", err.Error()))
 		var pgErr *pq.Error
 		if errors.As(err, &pgErr) {
@@ -160,10 +160,10 @@ func (g *Gophermart) UploadOrder(ctx context.Context, request UploadOrderRequest
 	return UploadOrder202Response{}, nil
 }
 
-func (g *Gophermart) GetBalance(ctx context.Context, request GetBalanceRequestObject) (GetBalanceResponseObject, error) {
-	userID := ctx.Value(KeyUserID).(uuid.UUID)
+func (g *Gophermart) GetBalance(ctx context.Context, _ GetBalanceRequestObject) (GetBalanceResponseObject, error) {
+	userID := FromContext(ctx)
 
-	balance, withdrawn, err := g.service.GetBalance(userID)
+	balance, withdrawn, err := g.service.GetBalance(ctx, userID)
 	if err != nil {
 		g.logger.Info("Get balance error", slog.String("error", err.Error()))
 		if errors.Is(err, sql.ErrNoRows) {
@@ -182,7 +182,7 @@ func (g *Gophermart) GetBalance(ctx context.Context, request GetBalanceRequestOb
 }
 
 func (g *Gophermart) WithdrawalRequest(ctx context.Context, request WithdrawalRequestRequestObject) (WithdrawalRequestResponseObject, error) {
-	userID := ctx.Value(KeyUserID).(uuid.UUID)
+	userID := FromContext(ctx)
 
 	if valid := luhn.IsValid(request.Body.Order); !valid {
 		return WithdrawalRequest422JSONResponse{
@@ -190,7 +190,7 @@ func (g *Gophermart) WithdrawalRequest(ctx context.Context, request WithdrawalRe
 		}, nil
 	}
 
-	err := g.service.WithdrawalRequest(userID, request.Body.Order, request.Body.Sum)
+	err := g.service.WithdrawalRequest(ctx, userID, request.Body.Order, request.Body.Sum)
 	if err != nil {
 		g.logger.Info("Withdrawal request error", slog.String("error", err.Error()))
 		if errors.Is(err, storage.ErrInsufficientBalance) {
@@ -207,10 +207,10 @@ func (g *Gophermart) WithdrawalRequest(ctx context.Context, request WithdrawalRe
 	return WithdrawalRequest200Response{}, nil
 }
 
-func (g *Gophermart) GetWithdrawals(ctx context.Context, request GetWithdrawalsRequestObject) (GetWithdrawalsResponseObject, error) {
-	userID := ctx.Value(KeyUserID).(uuid.UUID)
+func (g *Gophermart) GetWithdrawals(ctx context.Context, _ GetWithdrawalsRequestObject) (GetWithdrawalsResponseObject, error) {
+	userID := FromContext(ctx)
 
-	withdrawals, err := g.service.GetWithdrawals(userID)
+	withdrawals, err := g.service.GetWithdrawals(ctx, userID)
 	if err != nil {
 		g.logger.Info("Get withdrawals error", slog.String("error", err.Error()))
 		if errors.Is(err, sql.ErrNoRows) {
