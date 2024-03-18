@@ -114,7 +114,7 @@ func (s *Storage) UpdateOrder(ctx context.Context, userID uuid.UUID, order model
 		return err
 	}
 
-	query := "UPDATE orders SET status = $1, accrual = $2, uploaded_at = $3 WHERE user_id = $4 AND order_number = $5"
+	query := "UPDATE orders SET status = $1, accrual = $2, updated_at = $3 WHERE user_id = $4 AND order_number = $5"
 	if _, err = tx.ExecContext(ctx, query, order.Status, order.Accrual, time.Now().UTC(), userID, order.Number); err != nil {
 		_ = tx.Rollback()
 		return err
