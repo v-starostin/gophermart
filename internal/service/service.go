@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -25,13 +26,8 @@ const (
 )
 
 var (
-	ErrNoContent          = errors.New("no content")
 	ErrOrderAlreadyExists = errors.New("order already exists for current user")
 	ErrHittingRateLimit   = errors.New("hitting rate limit")
-)
-
-var (
-	timeout time.Duration = 0
 )
 
 type Storage interface {
@@ -56,6 +52,7 @@ type Service struct {
 	client     HTTPClient
 	secret     []byte
 	accrualURL string
+	timeout    atomic.Int64
 }
 
 func New(logger *slog.Logger, storage Storage, client HTTPClient, secret []byte, url string) *Service {
@@ -94,13 +91,10 @@ func (s *Service) UploadOrder(ctx context.Context, userID uuid.UUID, orderNumber
 	}
 
 	var o *model.Order
-	var t time.Duration
-	o, t, err = s.fetchOrder(ctx, orderNumber)
+	o, err = s.fetchOrder(ctx, orderNumber)
 	if err != nil {
-		s.logger.Info("Failed to fetch order", slog.String("error", err.Error()))
-		if errors.Is(err, ErrHittingRateLimit) {
-			timeout = t
-		}
+		// if 3rd party service is not available, log error and create new order with NEW status
+		s.logger.Info("Failed to fetch order status, creating NEW order", slog.String("error", err.Error()))
 		o = &model.Order{
 			Number: orderNumber,
 			Status: "NEW",
@@ -137,87 +131,75 @@ func (s *Service) generateAccessToken(id uuid.UUID) (string, error) {
 	return string(signedToken), nil
 }
 
-func (s *Service) fetchOrder(ctx context.Context, orderNumber string) (*model.Order, time.Duration, error) {
+func (s *Service) fetchOrder(ctx context.Context, orderNumber string) (*model.Order, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf(accrualAPIFormat, s.accrualURL, orderNumber), nil)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 
 	res, err := s.client.Do(req)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
-		if res.StatusCode == http.StatusNoContent {
-			return nil, 0, ErrNoContent
-		}
 		if res.StatusCode == http.StatusTooManyRequests {
 			retryAfter := res.Header.Get("Retry-After")
 			ra, err := strconv.ParseInt(retryAfter, 10, 64)
 			if err != nil {
-				return nil, 0, err
+				return nil, err
 			}
-			return nil, time.Duration(ra), ErrHittingRateLimit
+			s.timeout.Store(ra)
+			return nil, ErrHittingRateLimit
 		}
-		return nil, 0, fmt.Errorf("failed to fetch order info, status code %d", res.StatusCode)
+		return nil, fmt.Errorf("failed to fetch order info, status code %d", res.StatusCode)
 	}
 
 	b, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 
 	var o model.Order
 	if err := json.Unmarshal(b, &o); err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 
-	return &o, 0, nil
+	return &o, nil
 }
 
 func (s *Service) FetchOrders(ctx context.Context, order <-chan model.Order) {
 	var wg sync.WaitGroup
-	//var timeout time.Duration
 
 	wg.Add(5)
-	go s.worker(ctx, 1, &wg, order, &timeout)
-	go s.worker(ctx, 2, &wg, order, &timeout)
-	go s.worker(ctx, 3, &wg, order, &timeout)
-	go s.worker(ctx, 4, &wg, order, &timeout)
-	go s.worker(ctx, 5, &wg, order, &timeout)
+	go s.worker(ctx, &wg, order)
+	go s.worker(ctx, &wg, order)
+	go s.worker(ctx, &wg, order)
+	go s.worker(ctx, &wg, order)
+	go s.worker(ctx, &wg, order)
 	wg.Wait()
 }
 
-func (s *Service) worker(ctx context.Context, id int, wg *sync.WaitGroup, order <-chan model.Order, timeout *time.Duration) {
+func (s *Service) worker(ctx context.Context, wg *sync.WaitGroup, order <-chan model.Order) {
 	defer wg.Done()
 
 	for {
 		select {
 		case <-ctx.Done():
 			s.logger.Info("Worker has been stopped", slog.String("reason", ctx.Err().Error()))
+			return
 		default:
 			o, ok := <-order
 			if !ok {
 				return
 			}
-			s.logger.Info("Received from channel", slog.Any("order", o))
-			time.Sleep(*timeout + time.Duration(id*100)*time.Millisecond)
-			s.logger.Info("Waiting", slog.String("timeout", (*timeout).String()))
-			o1, t, err := s.fetchOrder(ctx, o.Number)
-			if err != nil && !errors.Is(err, ErrHittingRateLimit) {
-				s.logger.Info("Worker", slog.String("error", err.Error()))
+			o1, err := s.retryForRateLimit(ctx, o.Number, s.fetchOrder)
+			if err != nil {
+				s.logger.Info("Worker error", slog.String("error", err.Error()))
 				continue
 			}
-			s.logger.Info("Fetched order", slog.Any("order", o1))
-			if t > 0 {
-				*timeout = t
-			} else {
-				*timeout = time.Duration(0)
-			}
 			if o1.Status == o.Status {
-				s.logger.Info("Order statuses are equal", slog.String("db", o.Status), slog.String("fetched", o1.Status))
 				continue
 			}
 			err = s.storage.UpdateOrder(ctx, o.UserID, *o1)
@@ -226,4 +208,17 @@ func (s *Service) worker(ctx context.Context, id int, wg *sync.WaitGroup, order 
 			}
 		}
 	}
+}
+
+func (s *Service) retryForRateLimit(ctx context.Context, order string, fn func(context.Context, string) (*model.Order, error)) (*model.Order, error) {
+	o, err := fn(ctx, order)
+	if err == nil {
+		return o, nil
+	}
+	if !errors.Is(err, ErrHittingRateLimit) {
+		return nil, err
+	}
+	time.Sleep(time.Duration(s.timeout.Load()) * time.Second)
+
+	return fn(ctx, order)
 }
